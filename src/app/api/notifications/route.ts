@@ -1,47 +1,72 @@
 import { NextResponse } from 'next/server'
-import { db } from '@/lib/db'
+
+function getTursoClient() {
+  const authToken = process.env.DATABASE_AUTH_TOKEN
+  const databaseUrl = process.env.DATABASE_URL
+  if (!authToken || !databaseUrl) throw new Error('Database not configured')
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { createClient } = require('@libsql/client')
+  return createClient({ url: databaseUrl, authToken })
+}
 
 export async function GET() {
   try {
-    const notifications = await db.notification.findMany({
-      include: { scholarship: true },
-      orderBy: { createdAt: 'desc' },
-    })
+    const client = getTursoClient()
+    const result = await client.execute(`
+      SELECT n.*, s.title as scholarshipTitle, s.university, s.country, s.subject, s.deadlineDate
+      FROM Notification n
+      LEFT JOIN Scholarship s ON n.scholarshipId = s.id
+      ORDER BY n.createdAt DESC
+    `)
 
-    const unreadCount = await db.notification.count({
-      where: { isRead: false },
-    })
+    const unreadResult = await client.execute("SELECT COUNT(*) as count FROM Notification WHERE isRead = 0")
+
+    const notifications = result.rows.map((row: any) => ({
+      id: row.id,
+      scholarshipId: row.scholarshipId,
+      type: row.type,
+      message: row.message,
+      isRead: Number(row.isRead) === 1,
+      createdAt: row.createdAt,
+      scholarship: row.scholarshipTitle ? {
+        id: row.scholarshipId,
+        title: row.scholarshipTitle,
+        university: row.university,
+        country: row.country,
+        subject: row.subject,
+        deadlineDate: row.deadlineDate,
+      } : null,
+    }))
+
+    const unreadCount = Number(unreadResult.rows[0]?.count || 0)
+    client.close()
 
     return NextResponse.json({ notifications, unreadCount })
   } catch (error) {
     console.error('Error fetching notifications:', error)
-    return NextResponse.json({ error: 'Failed to fetch notifications' }, { status: 500 })
+    return NextResponse.json({ notifications: [], unreadCount: 0 })
   }
 }
 
 export async function PUT(request: Request) {
   try {
     const { id } = await request.json()
-    await db.notification.update({
-      where: { id },
-      data: { isRead: true },
-    })
+    const client = getTursoClient()
+    await client.execute({ sql: "UPDATE Notification SET isRead = 1 WHERE id = ?", args: [id] })
+    client.close()
     return NextResponse.json({ success: true })
   } catch (error) {
-    console.error('Error updating notification:', error)
-    return NextResponse.json({ error: 'Failed to update notification' }, { status: 500 })
+    return NextResponse.json({ error: 'Failed' }, { status: 500 })
   }
 }
 
 export async function DELETE() {
   try {
-    await db.notification.updateMany({
-      where: { isRead: false },
-      data: { isRead: true },
-    })
+    const client = getTursoClient()
+    await client.execute("UPDATE Notification SET isRead = 1 WHERE isRead = 0")
+    client.close()
     return NextResponse.json({ success: true })
   } catch (error) {
-    console.error('Error marking all notifications:', error)
-    return NextResponse.json({ error: 'Failed to mark all notifications' }, { status: 500 })
+    return NextResponse.json({ error: 'Failed' }, { status: 500 })
   }
 }

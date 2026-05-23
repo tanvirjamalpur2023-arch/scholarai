@@ -1,5 +1,21 @@
 import { NextResponse } from 'next/server'
-import { db } from '@/lib/db'
+
+function getTursoClient() {
+  const authToken = process.env.DATABASE_AUTH_TOKEN
+  const databaseUrl = process.env.DATABASE_URL
+
+  if (!authToken || !databaseUrl) {
+    throw new Error('Database credentials not configured')
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { createClient } = require('@libsql/client')
+
+  return createClient({
+    url: databaseUrl,
+    authToken,
+  })
+}
 
 export async function GET(request: Request) {
   try {
@@ -11,60 +27,99 @@ export async function GET(request: Request) {
     const status = searchParams.get('status') || ''
     const isTextile = searchParams.get('isTextile')
     const page = parseInt(searchParams.get('page') || '1')
-    const limit = parseInt(searchParams.get('limit') || '20')
+    const limit = parseInt(searchParams.get('limit') || '50')
 
-    const where: Record<string, unknown> = {}
+    const client = getTursoClient()
+
+    // Build WHERE clause
+    const conditions: string[] = []
+    const args: Record<string, string> = {}
 
     if (search) {
-      where.OR = [
-        { title: { contains: search } },
-        { description: { contains: search } },
-        { university: { contains: search } },
-        { subject: { contains: search } },
-      ]
+      conditions.push(`(title LIKE @search OR description LIKE @search OR university LIKE @search OR subject LIKE @search)`)
+      args.search = `%${search}%`
     }
-
-    if (country) {
-      where.country = { contains: country }
+    if (country && country !== 'all') {
+      conditions.push(`country LIKE @country`)
+      args.country = `%${country}%`
     }
-
-    if (subject) {
-      where.subject = { contains: subject }
+    if (subject && subject !== 'all') {
+      conditions.push(`subject LIKE @subject`)
+      args.subject = `%${subject}%`
     }
-
-    if (degree) {
-      where.degree = degree
+    if (degree && degree !== 'all') {
+      conditions.push(`degree = @degree`)
+      args.degree = degree
     }
-
-    if (status) {
-      where.status = status
+    if (status && status !== 'all') {
+      conditions.push(`status = @status`)
+      args.status = status
     }
-
     if (isTextile === 'true') {
-      where.isTextile = true
+      conditions.push(`isTextile = 1`)
     }
 
-    const [scholarships, total] = await Promise.all([
-      db.scholarship.findMany({
-        where,
-        orderBy: { deadlineDate: 'asc' },
-        skip: (page - 1) * limit,
-        take: limit,
-      }),
-      db.scholarship.count({ where }),
-    ])
+    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : ''
+
+    // Get scholarships
+    const offset = (page - 1) * limit
+    const scholarshipsResult = await client.execute({
+      sql: `SELECT * FROM Scholarship ${whereClause} ORDER BY deadlineDate ASC LIMIT ${limit} OFFSET ${offset}`,
+      args: args as any,
+    })
+
+    // Get total count
+    const countResult = await client.execute({
+      sql: `SELECT COUNT(*) as total FROM Scholarship ${whereClause}`,
+      args: args as any,
+    })
 
     // Get stats
+    const [totalResult, openResult, closingResult, closedResult, textileResult, countriesResult, subjectsResult, degreesResult] = await Promise.all([
+      client.execute('SELECT COUNT(*) as count FROM Scholarship'),
+      client.execute("SELECT COUNT(*) as count FROM Scholarship WHERE status = 'open'"),
+      client.execute("SELECT COUNT(*) as count FROM Scholarship WHERE status = 'closing_soon'"),
+      client.execute("SELECT COUNT(*) as count FROM Scholarship WHERE status = 'closed'"),
+      client.execute('SELECT COUNT(*) as count FROM Scholarship WHERE isTextile = 1'),
+      client.execute('SELECT DISTINCT country FROM Scholarship'),
+      client.execute('SELECT DISTINCT subject FROM Scholarship'),
+      client.execute('SELECT DISTINCT degree FROM Scholarship'),
+    ])
+
+    const total = Number(countResult.rows[0]?.total || 0)
+
+    const scholarships = scholarshipsResult.rows.map((row: any) => ({
+      id: row.id,
+      title: row.title,
+      description: row.description,
+      university: row.university,
+      country: row.country,
+      subject: row.subject,
+      degree: row.degree,
+      amount: row.amount,
+      applicationUrl: row.applicationUrl,
+      openDate: row.openDate,
+      deadlineDate: row.deadlineDate,
+      status: row.status,
+      isTextile: Number(row.isTextile) === 1,
+      requirements: row.requirements,
+      benefits: row.benefits,
+      createdAt: row.createdAt,
+      updatedAt: row.updatedAt,
+    }))
+
     const stats = {
-      total: await db.scholarship.count(),
-      open: await db.scholarship.count({ where: { status: 'open' } }),
-      closingSoon: await db.scholarship.count({ where: { status: 'closing_soon' } }),
-      closed: await db.scholarship.count({ where: { status: 'closed' } }),
-      textile: await db.scholarship.count({ where: { isTextile: true } }),
-      countries: (await db.scholarship.findMany({ select: { country: true }, distinct: ['country'] })).map(s => s.country),
-      subjects: (await db.scholarship.findMany({ select: { subject: true }, distinct: ['subject'] })).map(s => s.subject),
-      degrees: (await db.scholarship.findMany({ select: { degree: true }, distinct: ['degree'] })).map(s => s.degree),
+      total: Number(totalResult.rows[0]?.count || 0),
+      open: Number(openResult.rows[0]?.count || 0),
+      closingSoon: Number(closingResult.rows[0]?.count || 0),
+      closed: Number(closedResult.rows[0]?.count || 0),
+      textile: Number(textileResult.rows[0]?.count || 0),
+      countries: countriesResult.rows.map((r: any) => r.country),
+      subjects: subjectsResult.rows.map((r: any) => r.subject),
+      degrees: degreesResult.rows.map((r: any) => r.degree),
     }
+
+    client.close()
 
     return NextResponse.json({
       scholarships,
@@ -78,15 +133,30 @@ export async function GET(request: Request) {
     })
   } catch (error) {
     console.error('Error fetching scholarships:', error)
-    return NextResponse.json({ error: 'Failed to fetch scholarships' }, { status: 500 })
+    return NextResponse.json({ error: 'Failed to fetch scholarships', details: String(error) }, { status: 500 })
   }
 }
 
 export async function POST(request: Request) {
   try {
     const body = await request.json()
-    const scholarship = await db.scholarship.create({ data: body })
-    return NextResponse.json(scholarship, { status: 201 })
+    const client = getTursoClient()
+
+    const id = 'sch_' + Date.now() + '_' + Math.random().toString(36).substring(2, 8)
+
+    await client.execute({
+      sql: `INSERT INTO Scholarship (id, title, description, university, country, subject, degree, amount, applicationUrl, openDate, deadlineDate, status, isTextile, requirements, benefits, createdAt, updatedAt)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))`,
+      args: [
+        id, body.title, body.description, body.university, body.country,
+        body.subject, body.degree, body.amount, body.applicationUrl,
+        body.openDate, body.deadlineDate, body.status || 'open',
+        body.isTextile ? 1 : 0, body.requirements || '', body.benefits || ''
+      ],
+    })
+
+    client.close()
+    return NextResponse.json({ id, ...body }, { status: 201 })
   } catch (error) {
     console.error('Error creating scholarship:', error)
     return NextResponse.json({ error: 'Failed to create scholarship' }, { status: 500 })

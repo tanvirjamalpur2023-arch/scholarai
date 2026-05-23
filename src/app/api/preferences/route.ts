@@ -1,34 +1,42 @@
 import { NextResponse } from 'next/server'
-import { db } from '@/lib/db'
+
+function getTursoClient() {
+  const authToken = process.env.DATABASE_AUTH_TOKEN
+  const databaseUrl = process.env.DATABASE_URL
+  if (!authToken || !databaseUrl) throw new Error('Database not configured')
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { createClient } = require('@libsql/client')
+  return createClient({ url: databaseUrl, authToken })
+}
 
 export async function POST(request: Request) {
   try {
     const body = await request.json()
-    
-    // Delete existing preferences and create new one
-    await db.userPreference.deleteMany()
-    const preference = await db.userPreference.create({
-      data: {
-        preferredSubjects: body.preferredSubjects || '',
-        preferredCountries: body.preferredCountries || '',
-        notificationEnabled: body.notificationEnabled ?? true,
-        emailNotifications: body.emailNotifications ?? true,
-      },
+    const client = getTursoClient()
+    await client.execute('DELETE FROM UserPreference')
+    const id = 'pref_' + Date.now()
+    await client.execute({
+      sql: "INSERT INTO UserPreference (id, preferredSubjects, preferredCountries, notificationEnabled, emailNotifications) VALUES (?, ?, ?, ?, ?)",
+      args: [id, body.preferredSubjects || '', body.preferredCountries || '', body.notificationEnabled !== false ? 1 : 0, body.emailNotifications !== false ? 1 : 0]
     })
-
-    return NextResponse.json(preference)
+    client.close()
+    return NextResponse.json({ id, ...body })
   } catch (error) {
-    console.error('Error saving preferences:', error)
-    return NextResponse.json({ error: 'Failed to save preferences' }, { status: 500 })
+    return NextResponse.json({ error: 'Failed' }, { status: 500 })
   }
 }
 
 export async function GET() {
   try {
-    const preference = await db.userPreference.findFirst()
-    return NextResponse.json(preference)
+    const client = getTursoClient()
+    const result = await client.execute('SELECT * FROM UserPreference LIMIT 1')
+    client.close()
+    if (result.rows.length > 0) {
+      const row = result.rows[0] as any
+      return NextResponse.json({ id: row.id, preferredSubjects: row.preferredSubjects, preferredCountries: row.preferredCountries, notificationEnabled: Number(row.notificationEnabled) === 1, emailNotifications: Number(row.emailNotifications) === 1 })
+    }
+    return NextResponse.json(null)
   } catch (error) {
-    console.error('Error fetching preferences:', error)
-    return NextResponse.json({ error: 'Failed to fetch preferences' }, { status: 500 })
+    return NextResponse.json(null)
   }
 }
