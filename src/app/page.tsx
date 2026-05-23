@@ -7,7 +7,8 @@ import {
   BookOpen, TrendingUp, AlertTriangle, CheckCircle2, XCircle,
   Shirt, Layers, Palette, Cpu, Leaf, Factory, Settings,
   MapPin, DollarSign, Award, ArrowRight, Bot, User,
-  BellRing, Eye, RefreshCw
+  BellRing, Eye, RefreshCw, Droplets, Flame, Beaker, FlaskConical,
+  Printer, Shield, Atom, Microscope, Recycle, Waves
 } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -38,22 +39,55 @@ interface Stats {
 
 interface ChatMessage { role: 'user' | 'assistant'; content: string }
 
+// Wet Process Engineering related subjects
+const wetProcessSubjects = [
+  'Wet Process Engineering', 'Dyeing & Finishing Engineering', 'Textile Chemistry',
+  'Color Chemistry', 'Textile Wet Processing', 'Textile Chemical Processing',
+  'Polymer Science & Engineering', 'Fiber Science & Technology', 'Textile Printing Technology',
+  'Sustainable Textile Processing', 'Textile Finishing Technology', 'Environmental Textile Engineering',
+  'Textile Auxiliaries & Chemicals', 'Nanotechnology in Textiles', 'Smart Textile Finishing',
+  'Water Treatment in Textile Industry', 'Green Chemistry in Textiles', 'Denim Processing Technology',
+  'Textile Process Engineering', 'Coloration Technology', 'Advanced Materials in Textiles',
+  'Textile Biotechnology'
+]
+
 const subjectIcons: Record<string, React.ReactNode> = {
+  'Wet Process Engineering': <Droplets className="h-4 w-4" />,
+  'Dyeing & Finishing Engineering': <Flame className="h-4 w-4" />,
+  'Textile Chemistry': <Beaker className="h-4 w-4" />,
+  'Color Chemistry': <Palette className="h-4 w-4" />,
+  'Textile Wet Processing': <Waves className="h-4 w-4" />,
+  'Textile Chemical Processing': <FlaskConical className="h-4 w-4" />,
+  'Polymer Science & Engineering': <Atom className="h-4 w-4" />,
+  'Fiber Science & Technology': <Microscope className="h-4 w-4" />,
+  'Textile Printing Technology': <Printer className="h-4 w-4" />,
+  'Sustainable Textile Processing': <Recycle className="h-4 w-4" />,
+  'Textile Finishing Technology': <Shield className="h-4 w-4" />,
+  'Environmental Textile Engineering': <Leaf className="h-4 w-4" />,
+  'Textile Auxiliaries & Chemicals': <FlaskConical className="h-4 w-4" />,
+  'Nanotechnology in Textiles': <Cpu className="h-4 w-4" />,
+  'Smart Textile Finishing': <Sparkles className="h-4 w-4" />,
+  'Water Treatment in Textile Industry': <Droplets className="h-4 w-4" />,
+  'Green Chemistry in Textiles': <Leaf className="h-4 w-4" />,
+  'Denim Processing Technology': <Factory className="h-4 w-4" />,
+  'Textile Process Engineering': <Settings className="h-4 w-4" />,
+  'Coloration Technology': <Palette className="h-4 w-4" />,
+  'Advanced Materials in Textiles': <Layers className="h-4 w-4" />,
   'Textile Engineering': <Factory className="h-4 w-4" />,
   'Textile Design': <Palette className="h-4 w-4" />,
   'Smart Textiles': <Cpu className="h-4 w-4" />,
-  'Textile Chemistry': <Layers className="h-4 w-4" />,
   'Textile Sustainability': <Leaf className="h-4 w-4" />,
   'Textile Technology': <Shirt className="h-4 w-4" />,
   'Textile Manufacturing': <Factory className="h-4 w-4" />,
   'Fashion & Textile Business': <TrendingUp className="h-4 w-4" />,
   'Textile Innovation': <Sparkles className="h-4 w-4" />,
-  'Digital Textile Printing': <Layers className="h-4 w-4" />,
+  'Digital Textile Printing': <Printer className="h-4 w-4" />,
   'Apparel Industry': <Shirt className="h-4 w-4" />,
   'Sustainable Fashion Engineering': <Leaf className="h-4 w-4" />,
   'Textile Materials Science': <BookOpen className="h-4 w-4" />,
   'Textile Management': <TrendingUp className="h-4 w-4" />,
   'Textile Science': <BookOpen className="h-4 w-4" />,
+  'Textile Biotechnology': <FlaskConical className="h-4 w-4" />,
 }
 
 function getStatusColor(status: string) {
@@ -82,6 +116,10 @@ function getDaysRemaining(deadlineDate: string) {
   return Math.ceil((new Date(deadlineDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
 }
 
+function isWetProcessSubject(subject: string) {
+  return wetProcessSubjects.some(s => subject.toLowerCase().includes(s.toLowerCase()) || s.toLowerCase().includes(subject.toLowerCase()))
+}
+
 export default function Home() {
   const [scholarships, setScholarships] = useState<Scholarship[]>([])
   const [stats, setStats] = useState<Stats | null>(null)
@@ -96,7 +134,7 @@ export default function Home() {
   const [selectedScholarship, setSelectedScholarship] = useState<Scholarship | null>(null)
   const [activeTab, setActiveTab] = useState('dashboard')
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([
-    { role: 'assistant', content: 'Hello! I am your Scholarship AI Assistant. Ask me about scholarships, textile programs, or application tips!' }
+    { role: 'assistant', content: 'Hello! I am your Scholarship AI Assistant. Ask me about scholarships, wet process engineering programs, textile subjects, or application tips!' }
   ])
   const [chatInput, setChatInput] = useState('')
   const [chatLoading, setChatLoading] = useState(false)
@@ -157,6 +195,15 @@ export default function Home() {
 
   const openScholarships = scholarships.filter(s => s.status === 'open')
   const closingSoonScholarships = scholarships.filter(s => s.status === 'closing_soon')
+  const wetProcessScholarships = scholarships.filter(s => isWetProcessSubject(s.subject))
+  const wetProcessOpen = wetProcessScholarships.filter(s => s.status === 'open')
+
+  // Group wet process scholarships by subject
+  const wetProcessBySubject = wetProcessScholarships.reduce((acc, s) => {
+    if (!acc[s.subject]) acc[s.subject] = []
+    acc[s.subject].push(s)
+    return acc
+  }, {} as Record<string, Scholarship[]>)
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-emerald-50">
@@ -169,7 +216,7 @@ export default function Home() {
             </div>
             <div>
               <h1 className="text-xl font-bold bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">ScholarAI</h1>
-              <p className="text-xs text-muted-foreground">Scholarship AI Assistant</p>
+              <p className="text-xs text-muted-foreground">Scholarship & Wet Process Engineering AI</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -216,12 +263,15 @@ export default function Home() {
       {/* Main */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4 lg:w-[500px] bg-white shadow-sm border">
-            <TabsTrigger value="dashboard" className="gap-1"><TrendingUp className="h-4 w-4" /> Dashboard</TabsTrigger>
-            <TabsTrigger value="scholarships" className="gap-1"><GraduationCap className="h-4 w-4" /> Scholarships</TabsTrigger>
-            <TabsTrigger value="textile" className="gap-1"><Shirt className="h-4 w-4" /> Textile</TabsTrigger>
-            <TabsTrigger value="deadlines" className="gap-1"><Clock className="h-4 w-4" /> Deadlines</TabsTrigger>
-          </TabsList>
+          <div className="overflow-x-auto">
+            <TabsList className="grid w-full grid-cols-5 lg:w-[600px] bg-white shadow-sm border">
+              <TabsTrigger value="dashboard" className="gap-1 text-xs sm:text-sm"><TrendingUp className="h-4 w-4" /> Dashboard</TabsTrigger>
+              <TabsTrigger value="wet-process" className="gap-1 text-xs sm:text-sm"><Droplets className="h-4 w-4" /> Wet Process</TabsTrigger>
+              <TabsTrigger value="scholarships" className="gap-1 text-xs sm:text-sm"><GraduationCap className="h-4 w-4" /> All</TabsTrigger>
+              <TabsTrigger value="textile" className="gap-1 text-xs sm:text-sm"><Shirt className="h-4 w-4" /> Textile</TabsTrigger>
+              <TabsTrigger value="deadlines" className="gap-1 text-xs sm:text-sm"><Clock className="h-4 w-4" /> Deadlines</TabsTrigger>
+            </TabsList>
+          </div>
 
           {/* Dashboard */}
           <TabsContent value="dashboard" className="space-y-6">
@@ -230,7 +280,7 @@ export default function Home() {
                 { label: 'Total', value: stats?.total || 0, icon: GraduationCap, color: 'from-slate-500 to-slate-600', bg: 'bg-slate-50' },
                 { label: 'Open', value: stats?.open || 0, icon: CheckCircle2, color: 'from-emerald-500 to-emerald-600', bg: 'bg-emerald-50' },
                 { label: 'Closing Soon', value: stats?.closingSoon || 0, icon: AlertTriangle, color: 'from-amber-500 to-amber-600', bg: 'bg-amber-50' },
-                { label: 'Textile', value: stats?.textile || 0, icon: Shirt, color: 'from-teal-500 to-teal-600', bg: 'bg-teal-50' },
+                { label: 'Wet Process', value: wetProcessScholarships.length, icon: Droplets, color: 'from-teal-500 to-teal-600', bg: 'bg-teal-50' },
                 { label: 'Countries', value: stats?.countries?.length || 0, icon: Globe, color: 'from-indigo-500 to-indigo-600', bg: 'bg-indigo-50' },
               ].map((stat) => (
                 <Card key={stat.label} className={`${stat.bg} border-0 shadow-sm`}>
@@ -277,7 +327,7 @@ export default function Home() {
                     <CardContent className="p-5">
                       <div className="flex items-start justify-between mb-3">
                         <Badge className={`${getStatusColor(s.status)} gap-1`}>{getStatusIcon(s.status)} Open</Badge>
-                        {s.isTextile && <Badge className="bg-teal-100 text-teal-800 gap-1"><Shirt className="h-3 w-3" /> Textile</Badge>}
+                        {isWetProcessSubject(s.subject) && <Badge className="bg-teal-100 text-teal-800 gap-1"><Droplets className="h-3 w-3" /> WPE</Badge>}
                       </div>
                       <h3 className="font-semibold text-sm mb-1 line-clamp-2">{s.title}</h3>
                       <p className="text-xs text-muted-foreground flex items-center gap-1 mb-1"><MapPin className="h-3 w-3" /> {s.university}, {s.country}</p>
@@ -293,6 +343,65 @@ export default function Home() {
             </div>
           </TabsContent>
 
+          {/* Wet Process Engineering Tab */}
+          <TabsContent value="wet-process" className="space-y-6">
+            <div className="grid lg:grid-cols-3 gap-6">
+              <div className="lg:col-span-1 space-y-4">
+                <Card className="shadow-sm border-0 bg-gradient-to-br from-teal-500 to-emerald-600 text-white">
+                  <CardContent className="p-6">
+                    <Droplets className="h-10 w-10 mb-3 opacity-80" />
+                    <h2 className="text-xl font-bold mb-1">Wet Process Engineering</h2>
+                    <p className="text-sm text-white/80 mb-4">All subjects & scholarships for WPE</p>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="bg-white/20 rounded-xl p-3"><p className="text-2xl font-bold">{wetProcessScholarships.length}</p><p className="text-xs text-white/70">Total</p></div>
+                      <div className="bg-white/20 rounded-xl p-3"><p className="text-2xl font-bold">{wetProcessOpen.length}</p><p className="text-xs text-white/70">Open</p></div>
+                      <div className="bg-white/20 rounded-xl p-3"><p className="text-2xl font-bold">{Object.keys(wetProcessBySubject).length}</p><p className="text-xs text-white/70">Subjects</p></div>
+                      <div className="bg-white/20 rounded-xl p-3"><p className="text-2xl font-bold">{new Set(wetProcessScholarships.map(s => s.country)).size}</p><p className="text-xs text-white/70">Countries</p></div>
+                    </div>
+                  </CardContent>
+                </Card>
+                <Card className="shadow-sm border-0 bg-white">
+                  <CardHeader className="pb-3"><CardTitle className="text-base flex items-center gap-2"><BookOpen className="h-4 w-4 text-teal-600" /> WPE Related Subjects ({Object.keys(wetProcessBySubject).length})</CardTitle></CardHeader>
+                  <CardContent className="space-y-1 max-h-96 overflow-y-auto">
+                    {Object.entries(wetProcessBySubject).sort((a, b) => b[1].length - a[1].length).map(([subject, items]) => (
+                      <button key={subject} onClick={() => { setActiveTab('scholarships'); setSearchTerm(subject); }} className="w-full flex items-center gap-3 p-2.5 rounded-lg hover:bg-teal-50 transition-colors text-left">
+                        <div className="h-7 w-7 rounded-lg bg-teal-100 flex items-center justify-center text-teal-600 shrink-0">{subjectIcons[subject] || <BookOpen className="h-4 w-4" />}</div>
+                        <div className="min-w-0 flex-1"><p className="text-xs font-medium truncate">{subject}</p><p className="text-xs text-muted-foreground">{items.length} scholarship{items.length > 1 ? 's' : ''} | {items.filter(s => s.status === 'open').length} open</p></div>
+                      </button>
+                    ))}
+                  </CardContent>
+                </Card>
+              </div>
+              <div className="lg:col-span-2 space-y-3">
+                <h2 className="text-lg font-semibold flex items-center gap-2"><GraduationCap className="h-5 w-5 text-teal-600" /> All Wet Process Engineering Scholarships ({wetProcessScholarships.length})</h2>
+                <div className="space-y-3 max-h-[70vh] overflow-y-auto">
+                  {wetProcessScholarships.map((s) => (
+                    <Card key={s.id} className="shadow-sm border-0 bg-white hover:shadow-md transition-shadow cursor-pointer" onClick={() => setSelectedScholarship(s)}>
+                      <CardContent className="p-4">
+                        <div className="flex items-start gap-3">
+                          <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-teal-100 to-emerald-100 flex items-center justify-center shrink-0">{subjectIcons[s.subject] || <Droplets className="h-5 w-5 text-teal-600" />}</div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-start justify-between gap-2 mb-1">
+                              <h3 className="font-semibold text-sm line-clamp-1">{s.title}</h3>
+                              <Badge className={`${getStatusColor(s.status)} gap-1 shrink-0`}>{getStatusIcon(s.status)} {s.status === 'closing_soon' ? 'Closing' : s.status.charAt(0).toUpperCase() + s.status.slice(1)}</Badge>
+                            </div>
+                            <p className="text-xs text-muted-foreground mb-1">{s.university} - {s.country}</p>
+                            <div className="flex flex-wrap gap-1.5">
+                              <Badge variant="outline" className="text-xs gap-1"><BookOpen className="h-3 w-3" /> {s.subject}</Badge>
+                              <Badge variant="outline" className="text-xs gap-1"><Award className="h-3 w-3" /> {s.degree}</Badge>
+                              <Badge variant="outline" className="text-xs gap-1"><DollarSign className="h-3 w-3" /> {s.amount}</Badge>
+                              <Badge variant="outline" className="text-xs gap-1"><Calendar className="h-3 w-3" /> {formatDate(s.deadlineDate)}</Badge>
+                            </div>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </TabsContent>
+
           {/* Scholarships */}
           <TabsContent value="scholarships" className="space-y-6">
             <Card className="shadow-sm border-0 bg-white">
@@ -300,7 +409,7 @@ export default function Home() {
                 <div className="flex flex-col lg:flex-row gap-3">
                   <div className="relative flex-1">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input placeholder="Search scholarships..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-10" />
+                    <Input placeholder="Search scholarships, subjects, universities..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-10" />
                   </div>
                   <div className="flex flex-wrap gap-2">
                     <Select value={filterCountry} onValueChange={setFilterCountry}>
@@ -333,7 +442,7 @@ export default function Home() {
                     <CardContent className="p-5">
                       <div className="flex items-start justify-between mb-3">
                         <Badge className={`${getStatusColor(s.status)} gap-1`}>{getStatusIcon(s.status)} {s.status === 'closing_soon' ? 'Closing' : s.status.charAt(0).toUpperCase() + s.status.slice(1)}</Badge>
-                        {s.isTextile && <Badge className="bg-teal-100 text-teal-800 gap-1"><Shirt className="h-3 w-3" /> Textile</Badge>}
+                        {isWetProcessSubject(s.subject) && <Badge className="bg-teal-100 text-teal-800 gap-1"><Droplets className="h-3 w-3" /> WPE</Badge>}
                       </div>
                       <h3 className="font-semibold text-sm mb-1 line-clamp-2">{s.title}</h3>
                       <p className="text-xs text-muted-foreground flex items-center gap-1 mb-1"><MapPin className="h-3 w-3" /> {s.university}, {s.country}</p>
@@ -358,7 +467,7 @@ export default function Home() {
                   <CardContent className="p-6">
                     <Shirt className="h-10 w-10 mb-3 opacity-80" />
                     <h2 className="text-xl font-bold mb-1">Textile Scholarships</h2>
-                    <p className="text-sm text-white/80 mb-4">Best textile scholarships worldwide</p>
+                    <p className="text-sm text-white/80 mb-4">All textile programs worldwide</p>
                     <div className="grid grid-cols-2 gap-3">
                       <div className="bg-white/20 rounded-xl p-3"><p className="text-2xl font-bold">{stats?.textile || 0}</p><p className="text-xs text-white/70">Total</p></div>
                       <div className="bg-white/20 rounded-xl p-3"><p className="text-2xl font-bold">{scholarships.filter(s => s.isTextile && s.status === 'open').length}</p><p className="text-xs text-white/70">Open</p></div>
@@ -366,10 +475,10 @@ export default function Home() {
                   </CardContent>
                 </Card>
                 <Card className="shadow-sm border-0 bg-white">
-                  <CardHeader className="pb-3"><CardTitle className="text-base">Textile Subjects</CardTitle></CardHeader>
-                  <CardContent className="space-y-1">
-                    {stats?.subjects.filter(s => s.toLowerCase().includes('textile') || s.toLowerCase().includes('fashion') || s.toLowerCase().includes('apparel') || s.toLowerCase().includes('smart') || s.toLowerCase().includes('sustainable')).map(subject => (
-                      <button key={subject} onClick={() => { setFilterStatus('open'); setActiveTab('scholarships'); setFilterTextile(true) }} className="w-full flex items-center gap-3 p-2.5 rounded-lg hover:bg-teal-50 transition-colors text-left">
+                  <CardHeader className="pb-3"><CardTitle className="text-base">All Subjects ({stats?.subjects?.length || 0})</CardTitle></CardHeader>
+                  <CardContent className="space-y-1 max-h-96 overflow-y-auto">
+                    {stats?.subjects.sort().map(subject => (
+                      <button key={subject} onClick={() => { setFilterStatus('open'); setActiveTab('scholarships'); setFilterTextile(true); setSearchTerm(subject) }} className="w-full flex items-center gap-3 p-2.5 rounded-lg hover:bg-teal-50 transition-colors text-left">
                         <div className="h-7 w-7 rounded-lg bg-teal-100 flex items-center justify-center text-teal-600 shrink-0">{subjectIcons[subject] || <BookOpen className="h-4 w-4" />}</div>
                         <div className="min-w-0"><p className="text-xs font-medium">{subject}</p><p className="text-xs text-muted-foreground">{scholarships.filter(s => s.subject === subject).length} scholarships</p></div>
                       </button>
@@ -379,27 +488,29 @@ export default function Home() {
               </div>
               <div className="lg:col-span-2 space-y-3">
                 <h2 className="text-lg font-semibold flex items-center gap-2"><GraduationCap className="h-5 w-5 text-teal-600" /> All Textile Scholarships</h2>
-                {scholarships.filter(s => s.isTextile).map((s) => (
-                  <Card key={s.id} className="shadow-sm border-0 bg-white hover:shadow-md transition-shadow cursor-pointer" onClick={() => setSelectedScholarship(s)}>
-                    <CardContent className="p-4">
-                      <div className="flex items-start gap-3">
-                        <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-teal-100 to-emerald-100 flex items-center justify-center shrink-0">{subjectIcons[s.subject] || <Shirt className="h-5 w-5 text-teal-600" />}</div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-start justify-between gap-2 mb-1">
-                            <h3 className="font-semibold text-sm">{s.title}</h3>
-                            <Badge className={`${getStatusColor(s.status)} gap-1 shrink-0`}>{getStatusIcon(s.status)} {s.status === 'closing_soon' ? 'Closing' : s.status.charAt(0).toUpperCase() + s.status.slice(1)}</Badge>
-                          </div>
-                          <p className="text-xs text-muted-foreground mb-1">{s.university} - {s.country}</p>
-                          <div className="flex flex-wrap gap-1.5">
-                            <Badge variant="outline" className="text-xs gap-1"><BookOpen className="h-3 w-3" /> {s.subject}</Badge>
-                            <Badge variant="outline" className="text-xs gap-1"><Award className="h-3 w-3" /> {s.degree}</Badge>
-                            <Badge variant="outline" className="text-xs gap-1"><DollarSign className="h-3 w-3" /> {s.amount}</Badge>
+                <div className="space-y-3 max-h-[70vh] overflow-y-auto">
+                  {scholarships.filter(s => s.isTextile).map((s) => (
+                    <Card key={s.id} className="shadow-sm border-0 bg-white hover:shadow-md transition-shadow cursor-pointer" onClick={() => setSelectedScholarship(s)}>
+                      <CardContent className="p-4">
+                        <div className="flex items-start gap-3">
+                          <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-teal-100 to-emerald-100 flex items-center justify-center shrink-0">{subjectIcons[s.subject] || <Shirt className="h-5 w-5 text-teal-600" />}</div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-start justify-between gap-2 mb-1">
+                              <h3 className="font-semibold text-sm">{s.title}</h3>
+                              <Badge className={`${getStatusColor(s.status)} gap-1 shrink-0`}>{getStatusIcon(s.status)} {s.status === 'closing_soon' ? 'Closing' : s.status.charAt(0).toUpperCase() + s.status.slice(1)}</Badge>
+                            </div>
+                            <p className="text-xs text-muted-foreground mb-1">{s.university} - {s.country}</p>
+                            <div className="flex flex-wrap gap-1.5">
+                              <Badge variant="outline" className="text-xs gap-1"><BookOpen className="h-3 w-3" /> {s.subject}</Badge>
+                              <Badge variant="outline" className="text-xs gap-1"><Award className="h-3 w-3" /> {s.degree}</Badge>
+                              <Badge variant="outline" className="text-xs gap-1"><DollarSign className="h-3 w-3" /> {s.amount}</Badge>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
               </div>
             </div>
           </TabsContent>
@@ -430,7 +541,7 @@ export default function Home() {
               </div>
               <div className="lg:col-span-2">
                 <h2 className="text-lg font-semibold mb-4 flex items-center gap-2"><Calendar className="h-5 w-5 text-red-500" /> Timeline</h2>
-                <div className="relative pl-8 space-y-4">
+                <div className="relative pl-8 space-y-4 max-h-[70vh] overflow-y-auto">
                   <div className="absolute left-3 top-0 bottom-0 w-0.5 bg-gradient-to-b from-amber-400 via-emerald-400 to-red-400" />
                   {scholarships.map((s) => (
                     <div key={s.id} className="relative cursor-pointer" onClick={() => setSelectedScholarship(s)}>
@@ -443,7 +554,7 @@ export default function Home() {
                               <p className="text-xs text-muted-foreground">{s.university}, {s.country}</p>
                               <div className="flex gap-1.5 mt-1.5">
                                 <Badge className={`${getStatusColor(s.status)} gap-1 text-xs`}>{getStatusIcon(s.status)} {s.status === 'closing_soon' ? 'Closing' : s.status.charAt(0).toUpperCase() + s.status.slice(1)}</Badge>
-                                {s.isTextile && <Badge className="bg-teal-100 text-teal-800 gap-1 text-xs"><Shirt className="h-3 w-3" /> Textile</Badge>}
+                                {isWetProcessSubject(s.subject) && <Badge className="bg-teal-100 text-teal-800 gap-1 text-xs"><Droplets className="h-3 w-3" /> WPE</Badge>}
                               </div>
                             </div>
                             <div className="text-right">
@@ -520,7 +631,7 @@ export default function Home() {
         <SheetContent className="w-full sm:w-[420px] p-0 flex flex-col">
           <SheetHeader className="p-4 border-b bg-gradient-to-r from-emerald-500 to-teal-600 text-white">
             <SheetTitle className="flex items-center gap-2 text-white"><Bot className="h-5 w-5" /> ScholarAI Assistant</SheetTitle>
-            <p className="text-sm text-white/80">Ask about scholarships, textile programs, or tips!</p>
+            <p className="text-sm text-white/80">Ask about scholarships, wet process, textile programs!</p>
           </SheetHeader>
           <div className="flex-1 overflow-y-auto p-4 space-y-4">
             {chatMessages.map((msg, i) => (
@@ -533,7 +644,7 @@ export default function Home() {
             {chatLoading && <div className="flex gap-2"><div className="h-7 w-7 rounded-full bg-emerald-500 flex items-center justify-center shrink-0"><Bot className="h-4 w-4 text-white" /></div><div className="bg-gray-100 rounded-2xl px-3 py-2"><div className="flex gap-1"><div className="h-2 w-2 bg-gray-400 rounded-full animate-bounce" /><div className="h-2 w-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }} /><div className="h-2 w-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }} /></div></div></div>}
           </div>
           <div className="px-4 pb-2"><div className="flex gap-1.5 flex-wrap">
-            {['Best textile scholarships?', 'How to apply for DAAD?', 'Tips for essay'].map(p => <button key={p} onClick={() => setChatInput(p)} className="text-xs px-2.5 py-1 rounded-full border border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100">{p}</button>)}
+            {['Best WPE scholarships?', 'DAAD textile scholarship?', 'MEXT dyeing program?', 'Tips for application'].map(p => <button key={p} onClick={() => setChatInput(p)} className="text-xs px-2.5 py-1 rounded-full border border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100">{p}</button>)}
           </div></div>
           <div className="p-4 border-t bg-white"><div className="flex gap-2">
             <Input placeholder="Ask about scholarships..." value={chatInput} onChange={(e) => setChatInput(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && sendChatMessage()} className="flex-1" />
@@ -545,8 +656,8 @@ export default function Home() {
       {/* Footer */}
       <footer className="mt-auto border-t bg-white/80 py-4">
         <div className="max-w-7xl mx-auto px-4 flex items-center justify-between">
-          <p className="text-xs text-muted-foreground">ScholarAI - Scholarship AI Assistant | Textile-focused</p>
-          <div className="flex items-center gap-1 text-xs text-muted-foreground"><Sparkles className="h-3 w-3 text-emerald-500" /> AI Powered</div>
+          <p className="text-xs text-muted-foreground">ScholarAI - Wet Process Engineering & Scholarship AI Assistant</p>
+          <div className="flex items-center gap-1 text-xs text-muted-foreground"><Sparkles className="h-3 w-3 text-emerald-500" /> AI Powered | 110 Scholarships | 28 Subjects | 29 Countries</div>
         </div>
       </footer>
     </div>
