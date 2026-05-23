@@ -1,73 +1,42 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
 import {
   GraduationCap, Search, Bell, Globe, Filter, Clock, Calendar,
-  ChevronDown, ExternalLink, MessageCircle, Send, X, Sparkles,
+  ExternalLink, MessageCircle, Send, Sparkles,
   BookOpen, TrendingUp, AlertTriangle, CheckCircle2, XCircle,
   Shirt, Layers, Palette, Cpu, Leaf, Factory, Settings,
   MapPin, DollarSign, Award, ArrowRight, Bot, User,
-  BellRing, Eye, Trash2, RefreshCw
+  BellRing, Eye, RefreshCw
 } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { ScrollArea } from '@/components/ui/scroll-area'
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Switch } from '@/components/ui/switch'
-import { Separator } from '@/components/ui/separator'
 import { Skeleton } from '@/components/ui/skeleton'
 
 interface Scholarship {
-  id: string
-  title: string
-  description: string
-  university: string
-  country: string
-  subject: string
-  degree: string
-  amount: string
-  applicationUrl: string
-  openDate: string
-  deadlineDate: string
-  status: string
-  isTextile: boolean
-  requirements: string
-  benefits: string
-  createdAt: string
-  updatedAt: string
+  id: string; title: string; description: string; university: string
+  country: string; subject: string; degree: string; amount: string
+  applicationUrl: string; openDate: string; deadlineDate: string
+  status: string; isTextile: boolean; requirements: string; benefits: string
 }
 
 interface Notification {
-  id: string
-  scholarshipId: string
-  type: string
-  message: string
-  isRead: boolean
-  createdAt: string
-  scholarship: Scholarship
+  id: string; scholarshipId: string; type: string; message: string
+  isRead: boolean; createdAt: string; scholarship: Scholarship
 }
 
 interface Stats {
-  total: number
-  open: number
-  closingSoon: number
-  closed: number
-  textile: number
-  countries: string[]
-  subjects: string[]
-  degrees: string[]
+  total: number; open: number; closingSoon: number; closed: number
+  textile: number; countries: string[]; subjects: string[]; degrees: string[]
 }
 
-interface ChatMessage {
-  role: 'user' | 'assistant'
-  content: string
-}
+interface ChatMessage { role: 'user' | 'assistant'; content: string }
 
 const subjectIcons: Record<string, React.ReactNode> = {
   'Textile Engineering': <Factory className="h-4 w-4" />,
@@ -106,16 +75,11 @@ function getStatusIcon(status: string) {
 }
 
 function formatDate(dateStr: string) {
-  return new Date(dateStr).toLocaleDateString('en-US', {
-    year: 'numeric', month: 'short', day: 'numeric'
-  })
+  return new Date(dateStr).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
 }
 
 function getDaysRemaining(deadlineDate: string) {
-  const now = new Date()
-  const deadline = new Date(deadlineDate)
-  const diff = Math.ceil((deadline.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
-  return diff
+  return Math.ceil((new Date(deadlineDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
 }
 
 export default function Home() {
@@ -126,16 +90,13 @@ export default function Home() {
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [filterCountry, setFilterCountry] = useState('')
-  const [filterSubject, setFilterSubject] = useState('')
   const [filterDegree, setFilterDegree] = useState('')
   const [filterStatus, setFilterStatus] = useState('')
   const [filterTextile, setFilterTextile] = useState(false)
   const [selectedScholarship, setSelectedScholarship] = useState<Scholarship | null>(null)
   const [activeTab, setActiveTab] = useState('dashboard')
-
-  // Chat state
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([
-    { role: 'assistant', content: 'Hello! I am your Scholarship AI Assistant. I can help you find scholarships, understand application requirements, and provide guidance on textile-related programs worldwide. How can I help you today?' }
+    { role: 'assistant', content: 'Hello! I am your Scholarship AI Assistant. Ask me about scholarships, textile programs, or application tips!' }
   ])
   const [chatInput, setChatInput] = useState('')
   const [chatLoading, setChatLoading] = useState(false)
@@ -147,21 +108,16 @@ export default function Home() {
       const params = new URLSearchParams()
       if (searchTerm) params.set('search', searchTerm)
       if (filterCountry) params.set('country', filterCountry)
-      if (filterSubject) params.set('subject', filterSubject)
       if (filterDegree) params.set('degree', filterDegree)
       if (filterStatus) params.set('status', filterStatus)
       if (filterTextile) params.set('isTextile', 'true')
-
       const res = await fetch(`/api/scholarships?${params.toString()}`)
       const data = await res.json()
       setScholarships(data.scholarships || [])
       if (data.stats) setStats(data.stats)
-    } catch (err) {
-      console.error('Failed to fetch scholarships:', err)
-    } finally {
-      setLoading(false)
-    }
-  }, [searchTerm, filterCountry, filterSubject, filterDegree, filterStatus, filterTextile])
+    } catch (err) { console.error(err) }
+    finally { setLoading(false) }
+  }, [searchTerm, filterCountry, filterDegree, filterStatus, filterTextile])
 
   const fetchNotifications = useCallback(async () => {
     try {
@@ -169,721 +125,337 @@ export default function Home() {
       const data = await res.json()
       setNotifications(data.notifications || [])
       setUnreadCount(data.unreadCount || 0)
-    } catch (err) {
-      console.error('Failed to fetch notifications:', err)
-    }
+    } catch (err) { console.error(err) }
   }, [])
 
-  useEffect(() => {
-    fetchScholarships()
-    fetchNotifications()
-  }, [fetchScholarships, fetchNotifications])
+  useEffect(() => { fetchScholarships(); fetchNotifications() }, [fetchScholarships, fetchNotifications])
 
   const markNotificationRead = async (id: string) => {
-    try {
-      await fetch('/api/notifications', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id }),
-      })
-      fetchNotifications()
-    } catch (err) {
-      console.error('Failed to mark notification:', err)
-    }
+    await fetch('/api/notifications', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }) })
+    fetchNotifications()
   }
 
   const markAllRead = async () => {
-    try {
-      await fetch('/api/notifications', { method: 'DELETE' })
-      fetchNotifications()
-    } catch (err) {
-      console.error('Failed to mark all:', err)
-    }
+    await fetch('/api/notifications', { method: 'DELETE' })
+    fetchNotifications()
   }
 
   const sendChatMessage = async () => {
     if (!chatInput.trim() || chatLoading) return
-
     const userMessage = chatInput.trim()
     setChatInput('')
     setChatMessages(prev => [...prev, { role: 'user', content: userMessage }])
     setChatLoading(true)
-
     try {
-      const scholarshipContext = scholarships
-        .slice(0, 10)
-        .map(s => `- ${s.title} at ${s.university}, ${s.country} | Subject: ${s.subject} | Degree: ${s.degree} | Status: ${s.status} | Deadline: ${formatDate(s.deadlineDate)} | Amount: ${s.amount}`)
-        .join('\n')
-
-      const res = await fetch('/api/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          message: userMessage,
-          scholarshipContext,
-        }),
-      })
+      const context = scholarships.slice(0, 5).map(s => `${s.title} at ${s.university}, ${s.country} | ${s.subject} | ${s.status} | Deadline: ${formatDate(s.deadlineDate)}`).join('\n')
+      const res = await fetch('/api/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: userMessage, scholarshipContext: context }) })
       const data = await res.json()
       setChatMessages(prev => [...prev, { role: 'assistant', content: data.response || 'Sorry, I could not process your request.' }])
-    } catch (err) {
-      console.error('Chat error:', err)
-      setChatMessages(prev => [...prev, { role: 'assistant', content: 'Sorry, there was an error. Please try again.' }])
-    } finally {
-      setChatLoading(false)
-    }
+    } catch { setChatMessages(prev => [...prev, { role: 'assistant', content: 'Sorry, there was an error. Please try again.' }]) }
+    finally { setChatLoading(false) }
   }
 
   const openScholarships = scholarships.filter(s => s.status === 'open')
   const closingSoonScholarships = scholarships.filter(s => s.status === 'closing_soon')
-  const closedScholarships = scholarships.filter(s => s.status === 'closed')
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-emerald-50">
       {/* Header */}
       <header className="sticky top-0 z-50 border-b bg-white/80 backdrop-blur-xl">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <div className="flex items-center gap-3">
-              <div className="relative">
-                <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-lg shadow-emerald-200">
-                  <GraduationCap className="h-5 w-5 text-white" />
-                </div>
-                <div className="absolute -top-1 -right-1 h-3 w-3 rounded-full bg-emerald-400 animate-pulse" />
-              </div>
-              <div>
-                <h1 className="text-xl font-bold bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">
-                  ScholarAI
-                </h1>
-                <p className="text-xs text-muted-foreground">Scholarship AI Assistant</p>
-              </div>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between h-16">
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-lg">
+              <GraduationCap className="h-5 w-5 text-white" />
             </div>
-
-            <div className="flex items-center gap-2">
-              {/* Notification Bell */}
-              <Sheet>
-                <SheetTrigger asChild>
-                  <Button variant="ghost" size="icon" className="relative">
-                    <Bell className="h-5 w-5" />
-                    {unreadCount > 0 && (
-                      <span className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-red-500 text-white text-xs flex items-center justify-center animate-bounce">
-                        {unreadCount}
-                      </span>
-                    )}
-                  </Button>
-                </SheetTrigger>
-                <SheetContent className="w-full sm:w-[420px]">
-                  <SheetHeader>
-                    <div className="flex items-center justify-between">
-                      <SheetTitle className="flex items-center gap-2">
-                        <BellRing className="h-5 w-5 text-emerald-600" />
-                        Notifications
-                      </SheetTitle>
-                      {unreadCount > 0 && (
-                        <Button variant="ghost" size="sm" onClick={markAllRead}>
-                          <Eye className="h-4 w-4 mr-1" /> Mark all read
-                        </Button>
-                      )}
-                    </div>
-                  </SheetHeader>
-                  <div className="mt-4 space-y-3 max-h-[calc(100vh-100px)] overflow-y-auto">
-                    {notifications.length === 0 ? (
-                      <div className="text-center py-8 text-muted-foreground">
-                        <Bell className="h-12 w-12 mx-auto mb-3 opacity-30" />
-                        <p>No notifications yet</p>
-                      </div>
-                    ) : (
-                      notifications.map((notif) => (
-                        <motion.div
-                          key={notif.id}
-                          initial={{ opacity: 0, y: 10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          className={`p-4 rounded-xl border ${notif.isRead ? 'bg-white' : 'bg-emerald-50 border-emerald-200'} transition-all hover:shadow-md`}
-                        >
-                          <div className="flex items-start justify-between gap-2">
-                            <div className="flex items-start gap-3">
-                              <div className={`mt-0.5 h-8 w-8 rounded-lg flex items-center justify-center shrink-0 ${notif.type === 'deadline_approaching' ? 'bg-amber-100 text-amber-600' : 'bg-emerald-100 text-emerald-600'}`}>
-                                {notif.type === 'deadline_approaching' ? <AlertTriangle className="h-4 w-4" /> : <BellRing className="h-4 w-4" />}
-                              </div>
-                              <div>
-                                <p className="text-sm font-medium leading-snug">{notif.message}</p>
-                                <p className="text-xs text-muted-foreground mt-1">
-                                  {new Date(notif.createdAt).toLocaleDateString()}
-                                </p>
-                              </div>
-                            </div>
-                            {!notif.isRead && (
-                              <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={() => markNotificationRead(notif.id)}>
-                                <Eye className="h-3.5 w-3.5" />
-                              </Button>
-                            )}
-                          </div>
-                        </motion.div>
-                      ))
-                    )}
+            <div>
+              <h1 className="text-xl font-bold bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">ScholarAI</h1>
+              <p className="text-xs text-muted-foreground">Scholarship AI Assistant</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <Sheet>
+              <SheetTrigger asChild>
+                <Button variant="ghost" size="icon" className="relative">
+                  <Bell className="h-5 w-5" />
+                  {unreadCount > 0 && <span className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-red-500 text-white text-xs flex items-center justify-center">{unreadCount}</span>}
+                </Button>
+              </SheetTrigger>
+              <SheetContent className="w-full sm:w-[400px]">
+                <SheetHeader>
+                  <div className="flex items-center justify-between">
+                    <SheetTitle className="flex items-center gap-2"><BellRing className="h-5 w-5 text-emerald-600" /> Notifications</SheetTitle>
+                    {unreadCount > 0 && <Button variant="ghost" size="sm" onClick={markAllRead}><Eye className="h-4 w-4 mr-1" /> Mark all read</Button>}
                   </div>
-                </SheetContent>
-              </Sheet>
-
-              {/* AI Chat Button */}
-              <Button
-                onClick={() => setChatOpen(!chatOpen)}
-                className="bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white shadow-lg shadow-emerald-200 gap-2"
-              >
-                <Bot className="h-4 w-4" />
-                <span className="hidden sm:inline">AI Assistant</span>
-              </Button>
-            </div>
+                </SheetHeader>
+                <div className="mt-4 space-y-3 max-h-[70vh] overflow-y-auto">
+                  {notifications.length === 0 ? <p className="text-center py-8 text-muted-foreground">No notifications yet</p> :
+                    notifications.map((n) => (
+                      <div key={n.id} className={`p-3 rounded-xl border ${n.isRead ? 'bg-white' : 'bg-emerald-50 border-emerald-200'}`}>
+                        <div className="flex items-start gap-2">
+                          <div className={`h-7 w-7 rounded-lg flex items-center justify-center shrink-0 ${n.type === 'deadline_approaching' ? 'bg-amber-100 text-amber-600' : 'bg-emerald-100 text-emerald-600'}`}>
+                            {n.type === 'deadline_approaching' ? <AlertTriangle className="h-3.5 w-3.5" /> : <BellRing className="h-3.5 w-3.5" />}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-medium">{n.message}</p>
+                            <p className="text-xs text-muted-foreground mt-1">{new Date(n.createdAt).toLocaleDateString()}</p>
+                          </div>
+                          {!n.isRead && <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => markNotificationRead(n.id)}><Eye className="h-3 w-3" /></Button>}
+                        </div>
+                      </div>
+                    ))}
+                </div>
+              </SheetContent>
+            </Sheet>
+            <Button onClick={() => setChatOpen(!chatOpen)} className="bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white shadow-lg gap-2">
+              <Bot className="h-4 w-4" /><span className="hidden sm:inline">AI Assistant</span>
+            </Button>
           </div>
         </div>
       </header>
 
-      {/* Main Content */}
+      {/* Main */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
           <TabsList className="grid w-full grid-cols-4 lg:w-[500px] bg-white shadow-sm border">
-            <TabsTrigger value="dashboard" className="gap-1.5">
-              <TrendingUp className="h-4 w-4" /> Dashboard
-            </TabsTrigger>
-            <TabsTrigger value="scholarships" className="gap-1.5">
-              <GraduationCap className="h-4 w-4" /> Scholarships
-            </TabsTrigger>
-            <TabsTrigger value="textile" className="gap-1.5">
-              <Shirt className="h-4 w-4" /> Textile
-            </TabsTrigger>
-            <TabsTrigger value="deadlines" className="gap-1.5">
-              <Clock className="h-4 w-4" /> Deadlines
-            </TabsTrigger>
+            <TabsTrigger value="dashboard" className="gap-1"><TrendingUp className="h-4 w-4" /> Dashboard</TabsTrigger>
+            <TabsTrigger value="scholarships" className="gap-1"><GraduationCap className="h-4 w-4" /> Scholarships</TabsTrigger>
+            <TabsTrigger value="textile" className="gap-1"><Shirt className="h-4 w-4" /> Textile</TabsTrigger>
+            <TabsTrigger value="deadlines" className="gap-1"><Clock className="h-4 w-4" /> Deadlines</TabsTrigger>
           </TabsList>
 
-          {/* Dashboard Tab */}
+          {/* Dashboard */}
           <TabsContent value="dashboard" className="space-y-6">
-            {/* Stats Cards */}
             <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
               {[
-                { label: 'Total Scholarships', value: stats?.total || 0, icon: GraduationCap, color: 'from-slate-500 to-slate-600', bg: 'bg-slate-50' },
-                { label: 'Open Now', value: stats?.open || 0, icon: CheckCircle2, color: 'from-emerald-500 to-emerald-600', bg: 'bg-emerald-50' },
+                { label: 'Total', value: stats?.total || 0, icon: GraduationCap, color: 'from-slate-500 to-slate-600', bg: 'bg-slate-50' },
+                { label: 'Open', value: stats?.open || 0, icon: CheckCircle2, color: 'from-emerald-500 to-emerald-600', bg: 'bg-emerald-50' },
                 { label: 'Closing Soon', value: stats?.closingSoon || 0, icon: AlertTriangle, color: 'from-amber-500 to-amber-600', bg: 'bg-amber-50' },
-                { label: 'Textile Focused', value: stats?.textile || 0, icon: Shirt, color: 'from-teal-500 to-teal-600', bg: 'bg-teal-50' },
+                { label: 'Textile', value: stats?.textile || 0, icon: Shirt, color: 'from-teal-500 to-teal-600', bg: 'bg-teal-50' },
                 { label: 'Countries', value: stats?.countries?.length || 0, icon: Globe, color: 'from-indigo-500 to-indigo-600', bg: 'bg-indigo-50' },
               ].map((stat) => (
-                <motion.div
-                  key={stat.label}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.3 }}
-                >
-                  <Card className={`${stat.bg} border-0 shadow-sm hover:shadow-md transition-shadow`}>
-                    <CardContent className="p-4">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="text-xs text-muted-foreground font-medium">{stat.label}</p>
-                          <p className="text-2xl font-bold mt-1">{stat.value}</p>
-                        </div>
-                        <div className={`h-10 w-10 rounded-xl bg-gradient-to-br ${stat.color} flex items-center justify-center shadow-lg`}>
-                          <stat.icon className="h-5 w-5 text-white" />
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </motion.div>
-              ))}
-            </div>
-
-            {/* Closing Soon Alert */}
-            {closingSoonScholarships.length > 0 && (
-              <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-                <Card className="border-amber-200 bg-gradient-to-r from-amber-50 to-orange-50 shadow-md">
-                  <CardHeader className="pb-3">
-                    <CardTitle className="flex items-center gap-2 text-amber-800">
-                      <AlertTriangle className="h-5 w-5" />
-                      Closing Soon - Apply Now!
-                    </CardTitle>
-                    <CardDescription className="text-amber-700">
-                      These scholarships have deadlines approaching. Don&apos;t miss your chance!
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                      {closingSoonScholarships.map((s) => {
-                        const days = getDaysRemaining(s.deadlineDate)
-                        return (
-                          <Card key={s.id} className="bg-white/80 border-amber-200 hover:shadow-lg transition-all cursor-pointer" onClick={() => { setSelectedScholarship(s); setActiveTab('scholarships') }}>
-                            <CardContent className="p-4">
-                              <div className="flex items-start gap-3">
-                                <div className="h-10 w-10 rounded-lg bg-amber-100 flex items-center justify-center shrink-0">
-                                  <Clock className="h-5 w-5 text-amber-600" />
-                                </div>
-                                <div className="min-w-0">
-                                  <p className="text-sm font-semibold truncate">{s.title}</p>
-                                  <p className="text-xs text-muted-foreground">{s.university}</p>
-                                  <div className="flex items-center gap-2 mt-2">
-                                    <Badge variant="destructive" className="text-xs">{days} days left</Badge>
-                                    <Badge variant="outline" className="text-xs">{s.degree}</Badge>
-                                  </div>
-                                </div>
-                              </div>
-                            </CardContent>
-                          </Card>
-                        )
-                      })}
+                <Card key={stat.label} className={`${stat.bg} border-0 shadow-sm`}>
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between">
+                      <div><p className="text-xs text-muted-foreground font-medium">{stat.label}</p><p className="text-2xl font-bold mt-1">{stat.value}</p></div>
+                      <div className={`h-10 w-10 rounded-xl bg-gradient-to-br ${stat.color} flex items-center justify-center shadow-lg`}><stat.icon className="h-5 w-5 text-white" /></div>
                     </div>
                   </CardContent>
                 </Card>
-              </motion.div>
+              ))}
+            </div>
+
+            {closingSoonScholarships.length > 0 && (
+              <Card className="border-amber-200 bg-gradient-to-r from-amber-50 to-orange-50 shadow-md">
+                <CardHeader className="pb-3">
+                  <CardTitle className="flex items-center gap-2 text-amber-800"><AlertTriangle className="h-5 w-5" /> Closing Soon!</CardTitle>
+                  <CardDescription className="text-amber-700">Deadlines approaching - apply now!</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                    {closingSoonScholarships.map((s) => (
+                      <Card key={s.id} className="bg-white/80 border-amber-200 cursor-pointer" onClick={() => setSelectedScholarship(s)}>
+                        <CardContent className="p-4">
+                          <p className="text-sm font-semibold">{s.title}</p>
+                          <p className="text-xs text-muted-foreground">{s.university}</p>
+                          <div className="flex gap-2 mt-2">
+                            <Badge variant="destructive" className="text-xs">{getDaysRemaining(s.deadlineDate)} days left</Badge>
+                            <Badge variant="outline" className="text-xs">{s.degree}</Badge>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
             )}
 
-            {/* Recently Opened */}
             <div>
-              <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                <Sparkles className="h-5 w-5 text-emerald-600" />
-                Open Scholarships
-              </h2>
+              <h2 className="text-lg font-semibold mb-4 flex items-center gap-2"><Sparkles className="h-5 w-5 text-emerald-600" /> Open Scholarships</h2>
               <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {openScholarships.slice(0, 6).map((s, i) => (
-                  <motion.div
-                    key={s.id}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.3, delay: i * 0.05 }}
-                  >
-                    <Card className="hover:shadow-lg transition-all cursor-pointer border-0 shadow-sm bg-white" onClick={() => setSelectedScholarship(s)}>
-                      <CardContent className="p-5">
-                        <div className="flex items-start justify-between mb-3">
-                          <Badge className={`${getStatusColor(s.status)} gap-1`}>
-                            {getStatusIcon(s.status)} Open
-                          </Badge>
-                          {s.isTextile && (
-                            <Badge className="bg-teal-100 text-teal-800 border-teal-300 gap-1">
-                              <Shirt className="h-3 w-3" /> Textile
-                            </Badge>
-                          )}
-                        </div>
-                        <h3 className="font-semibold text-sm leading-snug mb-1 line-clamp-2">{s.title}</h3>
-                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-2">
-                          <MapPin className="h-3 w-3" /> {s.university}, {s.country}
-                        </div>
-                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-3">
-                          <DollarSign className="h-3 w-3" /> {s.amount}
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-1.5 text-xs text-emerald-600">
-                            <Calendar className="h-3 w-3" /> Deadline: {formatDate(s.deadlineDate)}
-                          </div>
-                          <ArrowRight className="h-4 w-4 text-muted-foreground" />
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </motion.div>
+                {openScholarships.slice(0, 6).map((s) => (
+                  <Card key={s.id} className="hover:shadow-lg transition-shadow cursor-pointer border-0 shadow-sm bg-white" onClick={() => setSelectedScholarship(s)}>
+                    <CardContent className="p-5">
+                      <div className="flex items-start justify-between mb-3">
+                        <Badge className={`${getStatusColor(s.status)} gap-1`}>{getStatusIcon(s.status)} Open</Badge>
+                        {s.isTextile && <Badge className="bg-teal-100 text-teal-800 gap-1"><Shirt className="h-3 w-3" /> Textile</Badge>}
+                      </div>
+                      <h3 className="font-semibold text-sm mb-1 line-clamp-2">{s.title}</h3>
+                      <p className="text-xs text-muted-foreground flex items-center gap-1 mb-1"><MapPin className="h-3 w-3" /> {s.university}, {s.country}</p>
+                      <p className="text-xs text-muted-foreground flex items-center gap-1 mb-3"><DollarSign className="h-3 w-3" /> {s.amount}</p>
+                      <div className="flex items-center justify-between">
+                        <p className="text-xs text-emerald-600 flex items-center gap-1"><Calendar className="h-3 w-3" /> {formatDate(s.deadlineDate)}</p>
+                        <ArrowRight className="h-4 w-4 text-muted-foreground" />
+                      </div>
+                    </CardContent>
+                  </Card>
                 ))}
               </div>
             </div>
           </TabsContent>
 
-          {/* Scholarships Tab */}
+          {/* Scholarships */}
           <TabsContent value="scholarships" className="space-y-6">
-            {/* Search & Filters */}
             <Card className="shadow-sm border-0 bg-white">
               <CardContent className="p-4">
                 <div className="flex flex-col lg:flex-row gap-3">
                   <div className="relative flex-1">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      placeholder="Search scholarships, universities, subjects..."
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      className="pl-10"
-                    />
+                    <Input placeholder="Search scholarships..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-10" />
                   </div>
                   <div className="flex flex-wrap gap-2">
                     <Select value={filterCountry} onValueChange={setFilterCountry}>
-                      <SelectTrigger className="w-[160px]">
-                        <Globe className="h-4 w-4 mr-1" />
-                        <SelectValue placeholder="Country" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All Countries</SelectItem>
-                        {stats?.countries.map(c => (
-                          <SelectItem key={c} value={c}>{c}</SelectItem>
-                        ))}
-                      </SelectContent>
+                      <SelectTrigger className="w-[150px]"><Globe className="h-4 w-4 mr-1" /><SelectValue placeholder="Country" /></SelectTrigger>
+                      <SelectContent><SelectItem value="all">All</SelectItem>{stats?.countries.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
                     </Select>
-
                     <Select value={filterDegree} onValueChange={setFilterDegree}>
-                      <SelectTrigger className="w-[130px]">
-                        <Award className="h-4 w-4 mr-1" />
-                        <SelectValue placeholder="Degree" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All Degrees</SelectItem>
-                        {stats?.degrees.map(d => (
-                          <SelectItem key={d} value={d}>{d}</SelectItem>
-                        ))}
-                      </SelectContent>
+                      <SelectTrigger className="w-[120px]"><Award className="h-4 w-4 mr-1" /><SelectValue placeholder="Degree" /></SelectTrigger>
+                      <SelectContent><SelectItem value="all">All</SelectItem>{stats?.degrees.map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}</SelectContent>
                     </Select>
-
                     <Select value={filterStatus} onValueChange={setFilterStatus}>
-                      <SelectTrigger className="w-[130px]">
-                        <Filter className="h-4 w-4 mr-1" />
-                        <SelectValue placeholder="Status" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All Status</SelectItem>
-                        <SelectItem value="open">Open</SelectItem>
-                        <SelectItem value="closing_soon">Closing Soon</SelectItem>
-                        <SelectItem value="closed">Closed</SelectItem>
-                      </SelectContent>
+                      <SelectTrigger className="w-[120px]"><Filter className="h-4 w-4 mr-1" /><SelectValue placeholder="Status" /></SelectTrigger>
+                      <SelectContent><SelectItem value="all">All</SelectItem><SelectItem value="open">Open</SelectItem><SelectItem value="closing_soon">Closing Soon</SelectItem><SelectItem value="closed">Closed</SelectItem></SelectContent>
                     </Select>
-
-                    <Button
-                      variant={filterTextile ? 'default' : 'outline'}
-                      className={filterTextile ? 'bg-teal-600 hover:bg-teal-700' : ''}
-                      onClick={() => setFilterTextile(!filterTextile)}
-                    >
-                      <Shirt className="h-4 w-4 mr-1" /> Textile Only
-                    </Button>
+                    <Button variant={filterTextile ? 'default' : 'outline'} className={filterTextile ? 'bg-teal-600' : ''} onClick={() => setFilterTextile(!filterTextile)}><Shirt className="h-4 w-4 mr-1" /> Textile</Button>
                   </div>
                 </div>
               </CardContent>
             </Card>
-
-            {/* Results */}
             <div className="flex items-center justify-between">
-              <p className="text-sm text-muted-foreground">
-                {loading ? 'Loading...' : `${scholarships.length} scholarships found`}
-              </p>
-              <Button variant="ghost" size="sm" onClick={fetchScholarships}>
-                <RefreshCw className="h-4 w-4 mr-1" /> Refresh
-              </Button>
+              <p className="text-sm text-muted-foreground">{loading ? 'Loading...' : `${scholarships.length} found`}</p>
+              <Button variant="ghost" size="sm" onClick={fetchScholarships}><RefreshCw className="h-4 w-4 mr-1" /> Refresh</Button>
             </div>
-
             {loading ? (
-              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {[1, 2, 3, 4, 5, 6].map(i => (
-                  <Card key={i} className="border-0 shadow-sm">
-                    <CardContent className="p-5">
-                      <Skeleton className="h-4 w-20 mb-3" />
-                      <Skeleton className="h-5 w-full mb-2" />
-                      <Skeleton className="h-4 w-3/4 mb-2" />
-                      <Skeleton className="h-4 w-1/2 mb-3" />
-                      <Skeleton className="h-4 w-2/3" />
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
+              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">{[1,2,3,4,5,6].map(i => <Card key={i} className="border-0 shadow-sm"><CardContent className="p-5"><Skeleton className="h-4 w-20 mb-3" /><Skeleton className="h-5 w-full mb-2" /><Skeleton className="h-4 w-3/4 mb-2" /><Skeleton className="h-4 w-1/2" /></CardContent></Card>)}</div>
             ) : (
               <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {scholarships.map((s, i) => (
-                  <motion.div
-                    key={s.id}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.3, delay: i * 0.03 }}
-                  >
-                    <Card
-                      className={`hover:shadow-lg transition-all cursor-pointer border-0 shadow-sm bg-white ${selectedScholarship?.id === s.id ? 'ring-2 ring-emerald-500' : ''}`}
-                      onClick={() => setSelectedScholarship(s)}
-                    >
-                      <CardContent className="p-5">
-                        <div className="flex items-start justify-between mb-3">
-                          <Badge className={`${getStatusColor(s.status)} gap-1`}>
-                            {getStatusIcon(s.status)}
-                            {s.status === 'closing_soon' ? 'Closing Soon' : s.status.charAt(0).toUpperCase() + s.status.slice(1)}
-                          </Badge>
-                          {s.isTextile && (
-                            <Badge className="bg-teal-100 text-teal-800 border-teal-300 gap-1">
-                              <Shirt className="h-3 w-3" /> Textile
-                            </Badge>
-                          )}
-                        </div>
-                        <h3 className="font-semibold text-sm leading-snug mb-1 line-clamp-2">{s.title}</h3>
-                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-1.5">
-                          <MapPin className="h-3 w-3 shrink-0" />
-                          <span className="truncate">{s.university}, {s.country}</span>
-                        </div>
-                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-1.5">
-                          <BookOpen className="h-3 w-3 shrink-0" />
-                          <span>{s.subject}</span>
-                        </div>
-                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-3">
-                          <DollarSign className="h-3 w-3 shrink-0" />
-                          <span className="truncate">{s.amount}</span>
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-1.5 text-xs text-emerald-600">
-                            <Calendar className="h-3 w-3" />
-                            {s.status !== 'closed' ? `Deadline: ${formatDate(s.deadlineDate)}` : `Closed: ${formatDate(s.deadlineDate)}`}
-                          </div>
-                          <Badge variant="outline" className="text-xs">{s.degree}</Badge>
-                        </div>
-                        {s.status === 'closing_soon' && (
-                          <div className="mt-2">
-                            <div className="h-1.5 bg-amber-100 rounded-full overflow-hidden">
-                              <div className="h-full bg-amber-500 rounded-full animate-pulse" style={{ width: '80%' }} />
-                            </div>
-                            <p className="text-xs text-amber-600 mt-1 font-medium">{getDaysRemaining(s.deadlineDate)} days remaining!</p>
-                          </div>
-                        )}
-                      </CardContent>
-                    </Card>
-                  </motion.div>
+                {scholarships.map((s) => (
+                  <Card key={s.id} className="hover:shadow-lg transition-shadow cursor-pointer border-0 shadow-sm bg-white" onClick={() => setSelectedScholarship(s)}>
+                    <CardContent className="p-5">
+                      <div className="flex items-start justify-between mb-3">
+                        <Badge className={`${getStatusColor(s.status)} gap-1`}>{getStatusIcon(s.status)} {s.status === 'closing_soon' ? 'Closing' : s.status.charAt(0).toUpperCase() + s.status.slice(1)}</Badge>
+                        {s.isTextile && <Badge className="bg-teal-100 text-teal-800 gap-1"><Shirt className="h-3 w-3" /> Textile</Badge>}
+                      </div>
+                      <h3 className="font-semibold text-sm mb-1 line-clamp-2">{s.title}</h3>
+                      <p className="text-xs text-muted-foreground flex items-center gap-1 mb-1"><MapPin className="h-3 w-3" /> {s.university}, {s.country}</p>
+                      <p className="text-xs text-muted-foreground flex items-center gap-1 mb-1"><BookOpen className="h-3 w-3" /> {s.subject}</p>
+                      <p className="text-xs text-muted-foreground flex items-center gap-1 mb-3"><DollarSign className="h-3 w-3" /> {s.amount}</p>
+                      <div className="flex items-center justify-between">
+                        <p className="text-xs text-emerald-600 flex items-center gap-1"><Calendar className="h-3 w-3" /> {formatDate(s.deadlineDate)}</p>
+                        <Badge variant="outline" className="text-xs">{s.degree}</Badge>
+                      </div>
+                    </CardContent>
+                  </Card>
                 ))}
               </div>
             )}
           </TabsContent>
 
-          {/* Textile Tab */}
+          {/* Textile */}
           <TabsContent value="textile" className="space-y-6">
             <div className="grid lg:grid-cols-3 gap-6">
-              {/* Textile Subjects Overview */}
               <div className="lg:col-span-1 space-y-4">
                 <Card className="shadow-sm border-0 bg-gradient-to-br from-teal-500 to-emerald-600 text-white">
                   <CardContent className="p-6">
                     <Shirt className="h-10 w-10 mb-3 opacity-80" />
                     <h2 className="text-xl font-bold mb-1">Textile Scholarships</h2>
-                    <p className="text-sm text-white/80 mb-4">
-                      Find the best textile-related scholarships from around the world
-                    </p>
+                    <p className="text-sm text-white/80 mb-4">Best textile scholarships worldwide</p>
                     <div className="grid grid-cols-2 gap-3">
-                      <div className="bg-white/20 rounded-xl p-3">
-                        <p className="text-2xl font-bold">{stats?.textile || 0}</p>
-                        <p className="text-xs text-white/70">Total</p>
-                      </div>
-                      <div className="bg-white/20 rounded-xl p-3">
-                        <p className="text-2xl font-bold">{scholarships.filter(s => s.isTextile && s.status === 'open').length}</p>
-                        <p className="text-xs text-white/70">Open</p>
-                      </div>
+                      <div className="bg-white/20 rounded-xl p-3"><p className="text-2xl font-bold">{stats?.textile || 0}</p><p className="text-xs text-white/70">Total</p></div>
+                      <div className="bg-white/20 rounded-xl p-3"><p className="text-2xl font-bold">{scholarships.filter(s => s.isTextile && s.status === 'open').length}</p><p className="text-xs text-white/70">Open</p></div>
                     </div>
                   </CardContent>
                 </Card>
-
                 <Card className="shadow-sm border-0 bg-white">
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-base">Textile Subjects</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-2">
+                  <CardHeader className="pb-3"><CardTitle className="text-base">Textile Subjects</CardTitle></CardHeader>
+                  <CardContent className="space-y-1">
                     {stats?.subjects.filter(s => s.toLowerCase().includes('textile') || s.toLowerCase().includes('fashion') || s.toLowerCase().includes('apparel') || s.toLowerCase().includes('smart') || s.toLowerCase().includes('sustainable')).map(subject => (
-                      <button
-                        key={subject}
-                        onClick={() => { setFilterSubject(subject); setActiveTab('scholarships'); setFilterTextile(true); }}
-                        className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-teal-50 transition-colors text-left group"
-                      >
-                        <div className="h-8 w-8 rounded-lg bg-teal-100 flex items-center justify-center text-teal-600 shrink-0">
-                          {subjectIcons[subject] || <BookOpen className="h-4 w-4" />}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium">{subject}</p>
-                          <p className="text-xs text-muted-foreground">{scholarships.filter(s => s.subject === subject).length} scholarships</p>
-                        </div>
-                        <ArrowRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                      <button key={subject} onClick={() => { setFilterStatus('open'); setActiveTab('scholarships'); setFilterTextile(true) }} className="w-full flex items-center gap-3 p-2.5 rounded-lg hover:bg-teal-50 transition-colors text-left">
+                        <div className="h-7 w-7 rounded-lg bg-teal-100 flex items-center justify-center text-teal-600 shrink-0">{subjectIcons[subject] || <BookOpen className="h-4 w-4" />}</div>
+                        <div className="min-w-0"><p className="text-xs font-medium">{subject}</p><p className="text-xs text-muted-foreground">{scholarships.filter(s => s.subject === subject).length} scholarships</p></div>
                       </button>
                     ))}
                   </CardContent>
                 </Card>
               </div>
-
-              {/* Textile Scholarships List */}
-              <div className="lg:col-span-2 space-y-4">
-                <h2 className="text-lg font-semibold flex items-center gap-2">
-                  <GraduationCap className="h-5 w-5 text-teal-600" />
-                  Textile-Related Scholarships
-                </h2>
-                <div className="space-y-3">
-                  {scholarships.filter(s => s.isTextile).map((s) => (
-                    <motion.div
-                      key={s.id}
-                      initial={{ opacity: 0, x: 20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                    >
-                      <Card className="shadow-sm border-0 bg-white hover:shadow-md transition-all cursor-pointer" onClick={() => setSelectedScholarship(s)}>
-                        <CardContent className="p-5">
-                          <div className="flex items-start gap-4">
-                            <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-teal-100 to-emerald-100 flex items-center justify-center shrink-0">
-                              {subjectIcons[s.subject] || <Shirt className="h-6 w-6 text-teal-600" />}
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-start justify-between gap-2 mb-1">
-                                <h3 className="font-semibold text-sm">{s.title}</h3>
-                                <Badge className={`${getStatusColor(s.status)} gap-1 shrink-0`}>
-                                  {getStatusIcon(s.status)}
-                                  {s.status === 'closing_soon' ? 'Closing' : s.status.charAt(0).toUpperCase() + s.status.slice(1)}
-                                </Badge>
-                              </div>
-                              <p className="text-xs text-muted-foreground mb-2">{s.university} - {s.country}</p>
-                              <div className="flex flex-wrap items-center gap-2 text-xs">
-                                <Badge variant="outline" className="gap-1">
-                                  <BookOpen className="h-3 w-3" /> {s.subject}
-                                </Badge>
-                                <Badge variant="outline" className="gap-1">
-                                  <Award className="h-3 w-3" /> {s.degree}
-                                </Badge>
-                                <Badge variant="outline" className="gap-1">
-                                  <DollarSign className="h-3 w-3" /> {s.amount}
-                                </Badge>
-                                <Badge variant="outline" className="gap-1 text-emerald-600">
-                                  <Calendar className="h-3 w-3" /> {formatDate(s.deadlineDate)}
-                                </Badge>
-                              </div>
-                            </div>
+              <div className="lg:col-span-2 space-y-3">
+                <h2 className="text-lg font-semibold flex items-center gap-2"><GraduationCap className="h-5 w-5 text-teal-600" /> All Textile Scholarships</h2>
+                {scholarships.filter(s => s.isTextile).map((s) => (
+                  <Card key={s.id} className="shadow-sm border-0 bg-white hover:shadow-md transition-shadow cursor-pointer" onClick={() => setSelectedScholarship(s)}>
+                    <CardContent className="p-4">
+                      <div className="flex items-start gap-3">
+                        <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-teal-100 to-emerald-100 flex items-center justify-center shrink-0">{subjectIcons[s.subject] || <Shirt className="h-5 w-5 text-teal-600" />}</div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-start justify-between gap-2 mb-1">
+                            <h3 className="font-semibold text-sm">{s.title}</h3>
+                            <Badge className={`${getStatusColor(s.status)} gap-1 shrink-0`}>{getStatusIcon(s.status)} {s.status === 'closing_soon' ? 'Closing' : s.status.charAt(0).toUpperCase() + s.status.slice(1)}</Badge>
                           </div>
-                        </CardContent>
-                      </Card>
-                    </motion.div>
-                  ))}
-                </div>
+                          <p className="text-xs text-muted-foreground mb-1">{s.university} - {s.country}</p>
+                          <div className="flex flex-wrap gap-1.5">
+                            <Badge variant="outline" className="text-xs gap-1"><BookOpen className="h-3 w-3" /> {s.subject}</Badge>
+                            <Badge variant="outline" className="text-xs gap-1"><Award className="h-3 w-3" /> {s.degree}</Badge>
+                            <Badge variant="outline" className="text-xs gap-1"><DollarSign className="h-3 w-3" /> {s.amount}</Badge>
+                          </div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
               </div>
             </div>
           </TabsContent>
 
-          {/* Deadlines Tab */}
+          {/* Deadlines */}
           <TabsContent value="deadlines" className="space-y-6">
             <div className="grid lg:grid-cols-3 gap-6">
               <div className="lg:col-span-1 space-y-4">
-                {/* Deadline Summary */}
                 <Card className="shadow-sm border-0 bg-gradient-to-br from-red-500 to-orange-500 text-white">
                   <CardContent className="p-6">
                     <Clock className="h-10 w-10 mb-3 opacity-80" />
                     <h2 className="text-xl font-bold mb-1">Deadline Tracker</h2>
-                    <p className="text-sm text-white/80 mb-4">
-                      Never miss a scholarship deadline again
-                    </p>
+                    <p className="text-sm text-white/80 mb-4">Never miss a deadline</p>
                     <div className="grid grid-cols-2 gap-3">
-                      <div className="bg-white/20 rounded-xl p-3">
-                        <p className="text-2xl font-bold">{stats?.closingSoon || 0}</p>
-                        <p className="text-xs text-white/70">Closing Soon</p>
-                      </div>
-                      <div className="bg-white/20 rounded-xl p-3">
-                        <p className="text-2xl font-bold">{stats?.open || 0}</p>
-                        <p className="text-xs text-white/70">Open</p>
-                      </div>
+                      <div className="bg-white/20 rounded-xl p-3"><p className="text-2xl font-bold">{stats?.closingSoon || 0}</p><p className="text-xs text-white/70">Closing</p></div>
+                      <div className="bg-white/20 rounded-xl p-3"><p className="text-2xl font-bold">{stats?.open || 0}</p><p className="text-xs text-white/70">Open</p></div>
                     </div>
                   </CardContent>
                 </Card>
-
-                {/* Quick Filter */}
                 <Card className="shadow-sm border-0 bg-white">
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-base">Quick Filter</CardTitle>
-                  </CardHeader>
+                  <CardHeader className="pb-3"><CardTitle className="text-base">Quick Filter</CardTitle></CardHeader>
                   <CardContent className="space-y-2">
-                    <Button
-                      variant={filterStatus === 'closing_soon' ? 'default' : 'ghost'}
-                      className={`w-full justify-start gap-2 ${filterStatus === 'closing_soon' ? 'bg-amber-500 hover:bg-amber-600' : ''}`}
-                      onClick={() => setFilterStatus(filterStatus === 'closing_soon' ? '' : 'closing_soon')}
-                    >
-                      <AlertTriangle className="h-4 w-4" /> Closing Soon ({stats?.closingSoon || 0})
-                    </Button>
-                    <Button
-                      variant={filterStatus === 'open' ? 'default' : 'ghost'}
-                      className={`w-full justify-start gap-2 ${filterStatus === 'open' ? 'bg-emerald-500 hover:bg-emerald-600' : ''}`}
-                      onClick={() => setFilterStatus(filterStatus === 'open' ? '' : 'open')}
-                    >
-                      <CheckCircle2 className="h-4 w-4" /> Open ({stats?.open || 0})
-                    </Button>
-                    <Button
-                      variant={filterStatus === 'closed' ? 'default' : 'ghost'}
-                      className={`w-full justify-start gap-2 ${filterStatus === 'closed' ? 'bg-red-500 hover:bg-red-600' : ''}`}
-                      onClick={() => setFilterStatus(filterStatus === 'closed' ? '' : 'closed')}
-                    >
-                      <XCircle className="h-4 w-4" /> Closed ({stats?.closed || 0})
-                    </Button>
+                    <Button variant={filterStatus === 'closing_soon' ? 'default' : 'ghost'} className={`w-full justify-start gap-2 ${filterStatus === 'closing_soon' ? 'bg-amber-500' : ''}`} onClick={() => setFilterStatus(filterStatus === 'closing_soon' ? '' : 'closing_soon')}><AlertTriangle className="h-4 w-4" /> Closing Soon ({stats?.closingSoon || 0})</Button>
+                    <Button variant={filterStatus === 'open' ? 'default' : 'ghost'} className={`w-full justify-start gap-2 ${filterStatus === 'open' ? 'bg-emerald-500' : ''}`} onClick={() => setFilterStatus(filterStatus === 'open' ? '' : 'open')}><CheckCircle2 className="h-4 w-4" /> Open ({stats?.open || 0})</Button>
+                    <Button variant={filterStatus === 'closed' ? 'default' : 'ghost'} className={`w-full justify-start gap-2 ${filterStatus === 'closed' ? 'bg-red-500' : ''}`} onClick={() => setFilterStatus(filterStatus === 'closed' ? '' : 'closed')}><XCircle className="h-4 w-4" /> Closed ({stats?.closed || 0})</Button>
                   </CardContent>
                 </Card>
               </div>
-
-              {/* Timeline */}
               <div className="lg:col-span-2">
-                <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                  <Calendar className="h-5 w-5 text-red-500" />
-                  Application Timeline
-                </h2>
-                <div className="relative">
-                  <div className="absolute left-5 top-0 bottom-0 w-0.5 bg-gradient-to-b from-amber-400 via-emerald-400 to-red-400" />
-                  <div className="space-y-4">
-                    {/* Closing Soon */}
-                    {closingSoonScholarships.map((s) => {
-                      const days = getDaysRemaining(s.deadlineDate)
-                      return (
-                        <motion.div key={s.id} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="relative pl-12 cursor-pointer" onClick={() => setSelectedScholarship(s)}>
-                          <div className="absolute left-3.5 top-4 h-4 w-4 rounded-full bg-amber-400 border-2 border-white shadow-md animate-pulse" />
-                          <Card className="shadow-sm border-amber-200 bg-gradient-to-r from-amber-50 to-orange-50 hover:shadow-md transition-all">
-                            <CardContent className="p-4">
-                              <div className="flex items-start justify-between">
-                                <div>
-                                  <h3 className="font-semibold text-sm">{s.title}</h3>
-                                  <p className="text-xs text-muted-foreground">{s.university}, {s.country}</p>
-                                  <div className="flex items-center gap-2 mt-2">
-                                    <Badge variant="destructive" className="gap-1">
-                                      <AlertTriangle className="h-3 w-3" /> {days} days left
-                                    </Badge>
-                                    <Badge variant="outline" className="text-xs">{s.degree}</Badge>
-                                  </div>
-                                </div>
-                                <div className="text-right">
-                                  <p className="text-xs text-muted-foreground">Deadline</p>
-                                  <p className="text-sm font-bold text-red-600">{formatDate(s.deadlineDate)}</p>
-                                </div>
-                              </div>
-                            </CardContent>
-                          </Card>
-                        </motion.div>
-                      )
-                    })}
-
-                    {/* Open */}
-                    {openScholarships.map((s) => (
-                      <motion.div key={s.id} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="relative pl-12 cursor-pointer" onClick={() => setSelectedScholarship(s)}>
-                        <div className="absolute left-3.5 top-4 h-4 w-4 rounded-full bg-emerald-400 border-2 border-white shadow-md" />
-                        <Card className="shadow-sm border-0 bg-white hover:shadow-md transition-all">
-                          <CardContent className="p-4">
-                            <div className="flex items-start justify-between">
-                              <div>
-                                <h3 className="font-semibold text-sm">{s.title}</h3>
-                                <p className="text-xs text-muted-foreground">{s.university}, {s.country}</p>
-                                <div className="flex items-center gap-2 mt-2">
-                                  <Badge className="bg-emerald-100 text-emerald-800 gap-1">
-                                    <CheckCircle2 className="h-3 w-3" /> Open
-                                  </Badge>
-                                  <Badge variant="outline" className="text-xs">{s.degree}</Badge>
-                                  {s.isTextile && <Badge className="bg-teal-100 text-teal-800 gap-1"><Shirt className="h-3 w-3" /> Textile</Badge>}
-                                </div>
-                              </div>
-                              <div className="text-right">
-                                <p className="text-xs text-muted-foreground">Deadline</p>
-                                <p className="text-sm font-bold text-emerald-600">{formatDate(s.deadlineDate)}</p>
+                <h2 className="text-lg font-semibold mb-4 flex items-center gap-2"><Calendar className="h-5 w-5 text-red-500" /> Timeline</h2>
+                <div className="relative pl-8 space-y-4">
+                  <div className="absolute left-3 top-0 bottom-0 w-0.5 bg-gradient-to-b from-amber-400 via-emerald-400 to-red-400" />
+                  {scholarships.map((s) => (
+                    <div key={s.id} className="relative cursor-pointer" onClick={() => setSelectedScholarship(s)}>
+                      <div className={`absolute -left-5 top-3 h-3 w-3 rounded-full border-2 border-white shadow ${s.status === 'closing_soon' ? 'bg-amber-400' : s.status === 'open' ? 'bg-emerald-400' : 'bg-red-400'}`} />
+                      <Card className={`shadow-sm border-0 ${s.status === 'closed' ? 'bg-gray-50 opacity-60' : 'bg-white'} hover:shadow-md transition-shadow`}>
+                        <CardContent className="p-3">
+                          <div className="flex items-start justify-between">
+                            <div>
+                              <h3 className="font-semibold text-sm">{s.title}</h3>
+                              <p className="text-xs text-muted-foreground">{s.university}, {s.country}</p>
+                              <div className="flex gap-1.5 mt-1.5">
+                                <Badge className={`${getStatusColor(s.status)} gap-1 text-xs`}>{getStatusIcon(s.status)} {s.status === 'closing_soon' ? 'Closing' : s.status.charAt(0).toUpperCase() + s.status.slice(1)}</Badge>
+                                {s.isTextile && <Badge className="bg-teal-100 text-teal-800 gap-1 text-xs"><Shirt className="h-3 w-3" /> Textile</Badge>}
                               </div>
                             </div>
-                          </CardContent>
-                        </Card>
-                      </motion.div>
-                    ))}
-
-                    {/* Closed */}
-                    {closedScholarships.map((s) => (
-                      <motion.div key={s.id} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="relative pl-12 cursor-pointer opacity-60" onClick={() => setSelectedScholarship(s)}>
-                        <div className="absolute left-3.5 top-4 h-4 w-4 rounded-full bg-red-400 border-2 border-white shadow-md" />
-                        <Card className="shadow-sm border-0 bg-gray-50 hover:shadow-md transition-all">
-                          <CardContent className="p-4">
-                            <div className="flex items-start justify-between">
-                              <div>
-                                <h3 className="font-semibold text-sm">{s.title}</h3>
-                                <p className="text-xs text-muted-foreground">{s.university}, {s.country}</p>
-                                <div className="flex items-center gap-2 mt-2">
-                                  <Badge className="bg-red-100 text-red-800 gap-1">
-                                    <XCircle className="h-3 w-3" /> Closed
-                                  </Badge>
-                                  <Badge variant="outline" className="text-xs">{s.degree}</Badge>
-                                </div>
-                              </div>
-                              <div className="text-right">
-                                <p className="text-xs text-muted-foreground">Closed</p>
-                                <p className="text-sm font-bold text-red-600">{formatDate(s.deadlineDate)}</p>
-                              </div>
+                            <div className="text-right">
+                              <p className="text-xs text-muted-foreground">{s.status === 'closed' ? 'Closed' : 'Deadline'}</p>
+                              <p className={`text-sm font-bold ${s.status === 'closing_soon' ? 'text-amber-600' : s.status === 'open' ? 'text-emerald-600' : 'text-red-600'}`}>{formatDate(s.deadlineDate)}</p>
+                              {s.status === 'closing_soon' && <p className="text-xs text-red-500 font-medium">{getDaysRemaining(s.deadlineDate)} days!</p>}
                             </div>
-                          </CardContent>
-                        </Card>
-                      </motion.div>
-                    ))}
-                  </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </div>
+                  ))}
                 </div>
               </div>
             </div>
@@ -891,7 +463,7 @@ export default function Home() {
         </Tabs>
       </main>
 
-      {/* Scholarship Detail Dialog */}
+      {/* Scholarship Detail */}
       <Dialog open={!!selectedScholarship} onOpenChange={() => setSelectedScholarship(null)}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           {selectedScholarship && (
@@ -899,92 +471,43 @@ export default function Home() {
               <DialogHeader>
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <DialogTitle className="text-lg leading-snug">{selectedScholarship.title}</DialogTitle>
-                    <p className="text-sm text-muted-foreground mt-1 flex items-center gap-1.5">
-                      <MapPin className="h-3.5 w-3.5" />
-                      {selectedScholarship.university}, {selectedScholarship.country}
-                    </p>
+                    <DialogTitle className="text-lg">{selectedScholarship.title}</DialogTitle>
+                    <p className="text-sm text-muted-foreground mt-1 flex items-center gap-1"><MapPin className="h-3.5 w-3.5" /> {selectedScholarship.university}, {selectedScholarship.country}</p>
                   </div>
-                  <Badge className={`${getStatusColor(selectedScholarship.status)} gap-1 shrink-0`}>
-                    {getStatusIcon(selectedScholarship.status)}
-                    {selectedScholarship.status === 'closing_soon' ? 'Closing Soon' : selectedScholarship.status.charAt(0).toUpperCase() + selectedScholarship.status.slice(1)}
-                  </Badge>
+                  <Badge className={`${getStatusColor(selectedScholarship.status)} gap-1`}>{getStatusIcon(selectedScholarship.status)} {selectedScholarship.status === 'closing_soon' ? 'Closing Soon' : selectedScholarship.status.charAt(0).toUpperCase() + selectedScholarship.status.slice(1)}</Badge>
                 </div>
               </DialogHeader>
-
               <div className="space-y-4 mt-2">
-                <p className="text-sm text-muted-foreground leading-relaxed">{selectedScholarship.description}</p>
-
+                <p className="text-sm text-muted-foreground">{selectedScholarship.description}</p>
                 <div className="grid grid-cols-2 gap-3">
-                  <div className="p-3 rounded-xl bg-teal-50">
-                    <p className="text-xs text-teal-600 font-medium">Subject</p>
-                    <p className="text-sm font-semibold flex items-center gap-1.5">
-                      {subjectIcons[selectedScholarship.subject] || <BookOpen className="h-4 w-4" />}
-                      {selectedScholarship.subject}
-                    </p>
-                  </div>
-                  <div className="p-3 rounded-xl bg-emerald-50">
-                    <p className="text-xs text-emerald-600 font-medium">Degree</p>
-                    <p className="text-sm font-semibold">{selectedScholarship.degree}</p>
-                  </div>
-                  <div className="p-3 rounded-xl bg-amber-50">
-                    <p className="text-xs text-amber-600 font-medium">Amount</p>
-                    <p className="text-sm font-semibold">{selectedScholarship.amount}</p>
-                  </div>
-                  <div className="p-3 rounded-xl bg-blue-50">
-                    <p className="text-xs text-blue-600 font-medium">Deadline</p>
-                    <p className="text-sm font-semibold">{formatDate(selectedScholarship.deadlineDate)}</p>
-                  </div>
+                  <div className="p-3 rounded-xl bg-teal-50"><p className="text-xs text-teal-600 font-medium">Subject</p><p className="text-sm font-semibold flex items-center gap-1">{subjectIcons[selectedScholarship.subject] || <BookOpen className="h-4 w-4" />} {selectedScholarship.subject}</p></div>
+                  <div className="p-3 rounded-xl bg-emerald-50"><p className="text-xs text-emerald-600 font-medium">Degree</p><p className="text-sm font-semibold">{selectedScholarship.degree}</p></div>
+                  <div className="p-3 rounded-xl bg-amber-50"><p className="text-xs text-amber-600 font-medium">Amount</p><p className="text-sm font-semibold">{selectedScholarship.amount}</p></div>
+                  <div className="p-3 rounded-xl bg-blue-50"><p className="text-xs text-blue-600 font-medium">Deadline</p><p className="text-sm font-semibold">{formatDate(selectedScholarship.deadlineDate)}</p></div>
                 </div>
-
                 {selectedScholarship.requirements && (
                   <div>
-                    <h4 className="text-sm font-semibold mb-2 flex items-center gap-1.5">
-                      <Settings className="h-4 w-4 text-muted-foreground" /> Requirements
-                    </h4>
+                    <h4 className="text-sm font-semibold mb-2 flex items-center gap-1"><Settings className="h-4 w-4 text-muted-foreground" /> Requirements</h4>
                     <div className="p-3 rounded-xl bg-gray-50 text-sm text-muted-foreground">
-                      {selectedScholarship.requirements.split(',').map((req, i) => (
-                        <div key={i} className="flex items-start gap-2 py-0.5">
-                          <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 mt-0.5 shrink-0" />
-                          <span>{req.trim()}</span>
-                        </div>
-                      ))}
+                      {selectedScholarship.requirements.split(',').map((req, i) => <div key={i} className="flex items-start gap-2 py-0.5"><CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 mt-0.5 shrink-0" /><span>{req.trim()}</span></div>)}
                     </div>
                   </div>
                 )}
-
                 {selectedScholarship.benefits && (
                   <div>
-                    <h4 className="text-sm font-semibold mb-2 flex items-center gap-1.5">
-                      <Award className="h-4 w-4 text-emerald-600" /> Benefits
-                    </h4>
+                    <h4 className="text-sm font-semibold mb-2 flex items-center gap-1"><Award className="h-4 w-4 text-emerald-600" /> Benefits</h4>
                     <div className="p-3 rounded-xl bg-emerald-50 text-sm text-muted-foreground">
-                      {selectedScholarship.benefits.split(',').map((ben, i) => (
-                        <div key={i} className="flex items-start gap-2 py-0.5">
-                          <Sparkles className="h-3.5 w-3.5 text-emerald-500 mt-0.5 shrink-0" />
-                          <span>{ben.trim()}</span>
-                        </div>
-                      ))}
+                      {selectedScholarship.benefits.split(',').map((ben, i) => <div key={i} className="flex items-start gap-2 py-0.5"><Sparkles className="h-3.5 w-3.5 text-emerald-500 mt-0.5 shrink-0" /><span>{ben.trim()}</span></div>)}
                     </div>
                   </div>
                 )}
-
-                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <Calendar className="h-3.5 w-3.5" />
-                  Application period: {formatDate(selectedScholarship.openDate)} - {formatDate(selectedScholarship.deadlineDate)}
-                </div>
-
                 <div className="flex gap-3">
                   {selectedScholarship.status !== 'closed' && (
-                    <Button className="flex-1 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white" asChild>
-                      <a href={selectedScholarship.applicationUrl} target="_blank" rel="noopener noreferrer">
-                        <ExternalLink className="h-4 w-4 mr-2" /> Apply Now
-                      </a>
+                    <Button className="flex-1 bg-gradient-to-r from-emerald-500 to-teal-600 text-white" asChild>
+                      <a href={selectedScholarship.applicationUrl} target="_blank" rel="noopener noreferrer"><ExternalLink className="h-4 w-4 mr-2" /> Apply Now</a>
                     </Button>
                   )}
-                  <Button variant="outline" onClick={() => { setSelectedScholarship(null); setChatOpen(true); setChatInput(`Tell me more about ${selectedScholarship.title}`); }}>
-                    <MessageCircle className="h-4 w-4 mr-2" /> Ask AI
-                  </Button>
+                  <Button variant="outline" onClick={() => { setSelectedScholarship(null); setChatOpen(true); setChatInput(`Tell me about ${selectedScholarship.title}`) }}><MessageCircle className="h-4 w-4 mr-2" /> Ask AI</Button>
                 </div>
               </div>
             </>
@@ -992,102 +515,38 @@ export default function Home() {
         </DialogContent>
       </Dialog>
 
-      {/* AI Chat Sheet */}
+      {/* AI Chat */}
       <Sheet open={chatOpen} onOpenChange={setChatOpen}>
-        <SheetContent className="w-full sm:w-[450px] p-0 flex flex-col">
+        <SheetContent className="w-full sm:w-[420px] p-0 flex flex-col">
           <SheetHeader className="p-4 border-b bg-gradient-to-r from-emerald-500 to-teal-600 text-white">
-            <SheetTitle className="flex items-center gap-2 text-white">
-              <Bot className="h-5 w-5" /> ScholarAI Assistant
-            </SheetTitle>
-            <p className="text-sm text-white/80">Ask me about scholarships, textile programs, or application tips!</p>
+            <SheetTitle className="flex items-center gap-2 text-white"><Bot className="h-5 w-5" /> ScholarAI Assistant</SheetTitle>
+            <p className="text-sm text-white/80">Ask about scholarships, textile programs, or tips!</p>
           </SheetHeader>
-
           <div className="flex-1 overflow-y-auto p-4 space-y-4">
             {chatMessages.map((msg, i) => (
-              <motion.div
-                key={i}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className={`flex gap-3 ${msg.role === 'user' ? 'justify-end' : ''}`}
-              >
-                {msg.role === 'assistant' && (
-                  <div className="h-8 w-8 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shrink-0">
-                    <Bot className="h-4 w-4 text-white" />
-                  </div>
-                )}
-                <div className={`max-w-[80%] rounded-2xl px-4 py-3 text-sm leading-relaxed ${msg.role === 'user' ? 'bg-emerald-600 text-white rounded-br-sm' : 'bg-gray-100 text-gray-800 rounded-bl-sm'}`}>
-                  {msg.content}
-                </div>
-                {msg.role === 'user' && (
-                  <div className="h-8 w-8 rounded-full bg-emerald-100 flex items-center justify-center shrink-0">
-                    <User className="h-4 w-4 text-emerald-600" />
-                  </div>
-                )}
-              </motion.div>
-            ))}
-            {chatLoading && (
-              <div className="flex gap-3">
-                <div className="h-8 w-8 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shrink-0">
-                  <Bot className="h-4 w-4 text-white" />
-                </div>
-                <div className="bg-gray-100 rounded-2xl rounded-bl-sm px-4 py-3">
-                  <div className="flex gap-1">
-                    <div className="h-2 w-2 bg-gray-400 rounded-full animate-bounce" />
-                    <div className="h-2 w-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }} />
-                    <div className="h-2 w-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }} />
-                  </div>
-                </div>
+              <div key={i} className={`flex gap-2 ${msg.role === 'user' ? 'justify-end' : ''}`}>
+                {msg.role === 'assistant' && <div className="h-7 w-7 rounded-full bg-emerald-500 flex items-center justify-center shrink-0"><Bot className="h-4 w-4 text-white" /></div>}
+                <div className={`max-w-[80%] rounded-2xl px-3 py-2 text-sm ${msg.role === 'user' ? 'bg-emerald-600 text-white rounded-br-sm' : 'bg-gray-100 rounded-bl-sm'}`}>{msg.content}</div>
+                {msg.role === 'user' && <div className="h-7 w-7 rounded-full bg-emerald-100 flex items-center justify-center shrink-0"><User className="h-4 w-4 text-emerald-600" /></div>}
               </div>
-            )}
+            ))}
+            {chatLoading && <div className="flex gap-2"><div className="h-7 w-7 rounded-full bg-emerald-500 flex items-center justify-center shrink-0"><Bot className="h-4 w-4 text-white" /></div><div className="bg-gray-100 rounded-2xl px-3 py-2"><div className="flex gap-1"><div className="h-2 w-2 bg-gray-400 rounded-full animate-bounce" /><div className="h-2 w-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }} /><div className="h-2 w-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }} /></div></div></div>}
           </div>
-
-          {/* Quick Prompts */}
-          <div className="px-4 pb-2">
-            <div className="flex gap-2 flex-wrap">
-              {[
-                'Best textile scholarships?',
-                'How to apply for DAAD?',
-                'Smart textiles programs',
-                'Tips for scholarship essay',
-              ].map((prompt) => (
-                <button
-                  key={prompt}
-                  onClick={() => setChatInput(prompt)}
-                  className="text-xs px-3 py-1.5 rounded-full border border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition-colors"
-                >
-                  {prompt}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Chat Input */}
-          <div className="p-4 border-t bg-white">
-            <div className="flex gap-2">
-              <Input
-                placeholder="Ask about scholarships..."
-                value={chatInput}
-                onChange={(e) => setChatInput(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && sendChatMessage()}
-                className="flex-1"
-              />
-              <Button onClick={sendChatMessage} disabled={chatLoading || !chatInput.trim()} className="bg-emerald-600 hover:bg-emerald-700">
-                <Send className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
+          <div className="px-4 pb-2"><div className="flex gap-1.5 flex-wrap">
+            {['Best textile scholarships?', 'How to apply for DAAD?', 'Tips for essay'].map(p => <button key={p} onClick={() => setChatInput(p)} className="text-xs px-2.5 py-1 rounded-full border border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100">{p}</button>)}
+          </div></div>
+          <div className="p-4 border-t bg-white"><div className="flex gap-2">
+            <Input placeholder="Ask about scholarships..." value={chatInput} onChange={(e) => setChatInput(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && sendChatMessage()} className="flex-1" />
+            <Button onClick={sendChatMessage} disabled={chatLoading || !chatInput.trim()} className="bg-emerald-600 hover:bg-emerald-700"><Send className="h-4 w-4" /></Button>
+          </div></div>
         </SheetContent>
       </Sheet>
 
       {/* Footer */}
-      <footer className="mt-auto border-t bg-white/80 backdrop-blur-xl py-4">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between">
-          <p className="text-xs text-muted-foreground">
-            ScholarAI - Your Scholarship AI Assistant | Textile-focused scholarship tracking
-          </p>
-          <div className="flex items-center gap-1 text-xs text-muted-foreground">
-            <Sparkles className="h-3 w-3 text-emerald-500" /> Powered by AI
-          </div>
+      <footer className="mt-auto border-t bg-white/80 py-4">
+        <div className="max-w-7xl mx-auto px-4 flex items-center justify-between">
+          <p className="text-xs text-muted-foreground">ScholarAI - Scholarship AI Assistant | Textile-focused</p>
+          <div className="flex items-center gap-1 text-xs text-muted-foreground"><Sparkles className="h-3 w-3 text-emerald-500" /> AI Powered</div>
         </div>
       </footer>
     </div>
