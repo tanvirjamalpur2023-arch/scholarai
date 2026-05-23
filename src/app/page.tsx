@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import {
   GraduationCap, Search, Bell, Globe, Filter, Clock, Calendar,
   ExternalLink, MessageCircle, Send, Sparkles,
@@ -8,7 +8,7 @@ import {
   Shirt, Layers, Palette, Cpu, Leaf, Factory, Settings,
   MapPin, DollarSign, Award, ArrowRight, Bot, User,
   BellRing, Eye, RefreshCw, Droplets, Flame, Beaker, FlaskConical,
-  Printer, Shield, Atom, Microscope, Recycle, Waves
+  Printer, Shield, Atom, Microscope, Recycle, Waves, Zap, Loader2
 } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -139,6 +139,63 @@ export default function Home() {
   const [chatInput, setChatInput] = useState('')
   const [chatLoading, setChatLoading] = useState(false)
   const [chatOpen, setChatOpen] = useState(false)
+  const [updating, setUpdating] = useState(false)
+  const [discovering, setDiscovering] = useState(false)
+  const [lastUpdated, setLastUpdated] = useState<string | null>(null)
+  const [autoUpdateEnabled, setAutoUpdateEnabled] = useState(true)
+  const autoUpdateRef = useRef<NodeJS.Timeout | null>(null)
+
+  // Auto-update: run every 5 minutes
+  useEffect(() => {
+    if (!autoUpdateEnabled) return
+    const runAutoUpdate = async () => {
+      try {
+        const res = await fetch('/api/auto-update', { method: 'POST' })
+        const data = await res.json()
+        if (data.success) {
+          setLastUpdated(data.lastUpdated)
+          fetchScholarships()
+          fetchNotifications()
+        }
+      } catch (err) { console.error('Auto-update failed:', err) }
+    }
+    // Run immediately on first load
+    runAutoUpdate()
+    // Then every 5 minutes
+    autoUpdateRef.current = setInterval(runAutoUpdate, 5 * 60 * 1000)
+    return () => { if (autoUpdateRef.current) clearInterval(autoUpdateRef.current) }
+  }, [autoUpdateEnabled])
+
+  const handleManualUpdate = async () => {
+    setUpdating(true)
+    try {
+      const res = await fetch('/api/auto-update', { method: 'POST' })
+      const data = await res.json()
+      if (data.success) {
+        setLastUpdated(data.lastUpdated)
+        await fetchScholarships()
+        await fetchNotifications()
+      }
+    } catch (err) { console.error(err) }
+    finally { setUpdating(false) }
+  }
+
+  const handleDiscover = async () => {
+    setDiscovering(true)
+    try {
+      const res = await fetch('/api/discover', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query: 'international scholarship wet process engineering textile dyeing finishing 2026 2027 masters PhD' }),
+      })
+      const data = await res.json()
+      if (data.success && data.discovered > 0) {
+        await fetchScholarships()
+        await fetchNotifications()
+      }
+    } catch (err) { console.error(err) }
+    finally { setDiscovering(false) }
+  }
 
   const fetchScholarships = useCallback(async () => {
     setLoading(true)
@@ -219,7 +276,25 @@ export default function Home() {
               <p className="text-xs text-muted-foreground">Scholarship & Wet Process Engineering AI</p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1 sm:gap-2">
+            {/* Auto-Update Status */}
+            <div className="hidden sm:flex items-center gap-1.5 px-2 py-1 rounded-lg bg-emerald-50 border border-emerald-200">
+              <div className={`h-2 w-2 rounded-full ${autoUpdateEnabled ? 'bg-emerald-500 animate-pulse' : 'bg-gray-400'}`} />
+              <span className="text-xs text-emerald-700">{autoUpdateEnabled ? 'Live' : 'Off'}</span>
+            </div>
+            {/* Manual Update Button */}
+            <Button variant="ghost" size="icon" onClick={handleManualUpdate} disabled={updating} title="Update statuses">
+              {updating ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+            </Button>
+            {/* Discover New Scholarships */}
+            <Button variant="ghost" size="icon" onClick={handleDiscover} disabled={discovering} title="Discover new scholarships from web" className="text-amber-600 hover:text-amber-700">
+              {discovering ? <Loader2 className="h-4 w-4 animate-spin" /> : <Zap className="h-4 w-4" />}
+            </Button>
+            {/* Auto-update toggle */}
+            <Button variant="ghost" size="sm" onClick={() => setAutoUpdateEnabled(!autoUpdateEnabled)} className={`gap-1 text-xs ${autoUpdateEnabled ? 'text-emerald-600' : 'text-gray-400'}`}>
+              <div className={`h-2 w-2 rounded-full ${autoUpdateEnabled ? 'bg-emerald-500' : 'bg-gray-400'}`} />
+              <span className="hidden sm:inline">Auto</span>
+            </Button>
             <Sheet>
               <SheetTrigger asChild>
                 <Button variant="ghost" size="icon" className="relative">
@@ -655,9 +730,13 @@ export default function Home() {
 
       {/* Footer */}
       <footer className="mt-auto border-t bg-white/80 py-4">
-        <div className="max-w-7xl mx-auto px-4 flex items-center justify-between">
+        <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
           <p className="text-xs text-muted-foreground">ScholarAI - Wet Process Engineering & Scholarship AI Assistant</p>
-          <div className="flex items-center gap-1 text-xs text-muted-foreground"><Sparkles className="h-3 w-3 text-emerald-500" /> AI Powered | 110 Scholarships | 28 Subjects | 29 Countries</div>
+          <div className="flex items-center gap-3 text-xs text-muted-foreground">
+            <div className="flex items-center gap-1"><div className={`h-2 w-2 rounded-full ${autoUpdateEnabled ? 'bg-emerald-500 animate-pulse' : 'bg-gray-400'}`} /> {autoUpdateEnabled ? 'Auto-update: ON (5 min)' : 'Auto-update: OFF'}</div>
+            {lastUpdated && <span>Last updated: {new Date(lastUpdated).toLocaleTimeString()}</span>}
+            <div className="flex items-center gap-1"><Sparkles className="h-3 w-3 text-emerald-500" /> AI + Web Discovery</div>
+          </div>
         </div>
       </footer>
     </div>
