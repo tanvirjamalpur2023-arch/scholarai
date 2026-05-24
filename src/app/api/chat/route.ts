@@ -10,7 +10,15 @@ export async function POST(request: Request) {
   try {
     const { message, scholarshipContext, chatHistory } = await request.json()
 
-    const zai = await ZAI.create()
+    let zai
+    try {
+      zai = await ZAI.create()
+    } catch (initError) {
+      console.error('ZAI init error:', initError)
+      return NextResponse.json({ 
+        response: generateFallbackResponse(message, scholarshipContext) 
+      })
+    }
 
     const systemPrompt = `You are ScholarAI, an advanced AI Assistant specializing in helping students find scholarships worldwide, with deep expertise in textile-related subjects and wet process engineering. You have extensive knowledge about:
 
@@ -89,18 +97,28 @@ Guidelines:
       }
     }
 
-    const completion = await zai.chat.completions.create({
-      messages,
-      temperature: 0.7,
-      max_tokens: 1500,
-    })
+    let completion
+    try {
+      completion = await zai.chat.completions.create({
+        messages,
+        temperature: 0.7,
+        max_tokens: 1500,
+      })
+    } catch (chatError) {
+      console.error('Chat completion error:', chatError)
+      return NextResponse.json({ 
+        response: generateFallbackResponse(message, scholarshipContext) 
+      })
+    }
 
     const response = completion.choices[0]?.message?.content || 'Sorry, I could not generate a response.'
 
     return NextResponse.json({ response })
   } catch (error) {
     console.error('Chat API error:', error)
-    return NextResponse.json({ error: 'Failed to generate response' }, { status: 500 })
+    return NextResponse.json({ 
+      response: generateFallbackResponse('', '') 
+    })
   }
 }
 
@@ -155,4 +173,29 @@ function shouldSearchWeb(message: string, scholarshipContext?: string): boolean 
 function extractSearchQuery(message: string): string {
   // Add context for better search results
   return `scholarship ${message} textile engineering wet process 2026 2027 international`
+}
+
+/**
+ * Generate a fallback response when the AI service is unavailable.
+ * Uses the scholarship context to provide a basic helpful response.
+ */
+function generateFallbackResponse(message: string, scholarshipContext?: string): string {
+  const lowerMsg = message.toLowerCase()
+  
+  // Try to match scholarships from context
+  if (scholarshipContext && scholarshipContext.length > 50) {
+    const lines = scholarshipContext.split('\n').filter(l => l.trim())
+    const matched = lines.filter(line => {
+      const lower = line.toLowerCase()
+      return lowerMsg.split(' ').some(word => word.length > 3 && lower.includes(word))
+    })
+    
+    if (matched.length > 0) {
+      return `Here are some scholarships I found that may match your query:\n\n${matched.slice(0, 5).map(s => '• ' + s).join('\n')}\n\nFor more detailed information, please browse the scholarship list in the app. The AI assistant is currently experiencing high demand - please try again shortly for a more detailed response.`
+    }
+    
+    return `I found ${lines.length} scholarships in our database. You can browse them using the tabs above - try the "All" tab with country/subject filters, or the "Wet Process" tab for specialized engineering scholarships.\n\nThe AI assistant is currently experiencing high demand. Please try again in a moment for personalized recommendations!`
+  }
+  
+  return `Hello! I'm your Scholarship AI Assistant. I can help you find scholarships, compare programs, and guide you through applications. The AI service is currently experiencing high demand - please try again shortly.\n\nIn the meantime, browse the scholarship tabs above to explore ${scholarshipContext ? 'our database of scholarships' : 'available opportunities'}!`
 }
