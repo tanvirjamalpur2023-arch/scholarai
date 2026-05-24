@@ -139,6 +139,7 @@ export default function Home() {
   const [chatInput, setChatInput] = useState('')
   const [chatLoading, setChatLoading] = useState(false)
   const [chatOpen, setChatOpen] = useState(false)
+  const [notificationOpen, setNotificationOpen] = useState(false)
   const [updating, setUpdating] = useState(false)
   const [discovering, setDiscovering] = useState(false)
   const [lastUpdated, setLastUpdated] = useState<string | null>(null)
@@ -242,8 +243,11 @@ export default function Home() {
     setChatMessages(prev => [...prev, { role: 'user', content: userMessage }])
     setChatLoading(true)
     try {
-      const context = scholarships.slice(0, 5).map(s => `${s.title} at ${s.university}, ${s.country} | ${s.subject} | ${s.status} | Deadline: ${formatDate(s.deadlineDate)}`).join('\n')
-      const res = await fetch('/api/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: userMessage, scholarshipContext: context }) })
+      // Send ALL scholarships in condensed format (title, country, subject, status, deadline)
+      const context = scholarships.map(s => `${s.title} | ${s.country} | ${s.subject} | ${s.degree} | ${s.status} | Deadline: ${formatDate(s.deadlineDate)}`).join('\n')
+      // Send last 10 chat messages as history for multi-turn conversation
+      const chatHistory = chatMessages.slice(-10).map(m => ({ role: m.role, content: m.content }))
+      const res = await fetch('/api/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: userMessage, scholarshipContext: context, chatHistory }) })
       const data = await res.json()
       setChatMessages(prev => [...prev, { role: 'assistant', content: data.response || 'Sorry, I could not process your request.' }])
     } catch { setChatMessages(prev => [...prev, { role: 'assistant', content: 'Sorry, there was an error. Please try again.' }]) }
@@ -295,7 +299,7 @@ export default function Home() {
               <div className={`h-2 w-2 rounded-full ${autoUpdateEnabled ? 'bg-emerald-500' : 'bg-gray-400'}`} />
               <span className="hidden sm:inline">Auto</span>
             </Button>
-            <Sheet>
+            <Sheet open={notificationOpen} onOpenChange={setNotificationOpen}>
               <SheetTrigger asChild>
                 <Button variant="ghost" size="icon" className="relative">
                   <Bell className="h-5 w-5" />
@@ -312,7 +316,15 @@ export default function Home() {
                 <div className="mt-4 space-y-3 max-h-[70vh] overflow-y-auto">
                   {notifications.length === 0 ? <p className="text-center py-8 text-muted-foreground">No notifications yet</p> :
                     notifications.map((n) => (
-                      <div key={n.id} className={`p-3 rounded-xl border ${n.isRead ? 'bg-white' : 'bg-emerald-50 border-emerald-200'}`}>
+                      <div key={n.id} className={`p-3 rounded-xl border cursor-pointer hover:bg-emerald-50/50 hover:border-emerald-300 transition-colors ${n.isRead ? 'bg-white' : 'bg-emerald-50 border-emerald-200'}`} onClick={async () => {
+                        // Mark as read
+                        if (!n.isRead) await markNotificationRead(n.id)
+                        // Close notification sheet
+                        setNotificationOpen(false)
+                        // Find and open the scholarship detail
+                        const found = scholarships.find(s => s.id === n.scholarshipId)
+                        if (found) setSelectedScholarship(found)
+                      }}>
                         <div className="flex items-start gap-2">
                           <div className={`h-7 w-7 rounded-lg flex items-center justify-center shrink-0 ${n.type === 'deadline_approaching' ? 'bg-amber-100 text-amber-600' : 'bg-emerald-100 text-emerald-600'}`}>
                             {n.type === 'deadline_approaching' ? <AlertTriangle className="h-3.5 w-3.5" /> : <BellRing className="h-3.5 w-3.5" />}
@@ -321,7 +333,10 @@ export default function Home() {
                             <p className="text-xs font-medium">{n.message}</p>
                             <p className="text-xs text-muted-foreground mt-1">{new Date(n.createdAt).toLocaleDateString()}</p>
                           </div>
-                          {!n.isRead && <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => markNotificationRead(n.id)}><Eye className="h-3 w-3" /></Button>}
+                          <div className="flex items-center gap-1 shrink-0">
+                            <span className="text-xs text-emerald-600 font-medium hover:underline">View</span>
+                            {!n.isRead && <Button variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => { e.stopPropagation(); markNotificationRead(n.id) }}><Eye className="h-3 w-3" /></Button>}
+                          </div>
                         </div>
                       </div>
                     ))}
